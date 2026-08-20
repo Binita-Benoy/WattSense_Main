@@ -1,0 +1,58 @@
+version: "3.9"
+
+services:
+  db:
+    image: timescale/timescaledb:latest-pg16
+    container_name: secpps_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: secpps
+      POSTGRES_PASSWORD: secpps_dev_password
+      POSTGRES_DB: secpps
+    ports:
+      - "5432:5432"
+    volumes:
+      - secpps_pgdata:/var/lib/postgresql/data
+      - ./infra/init-db:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U secpps -d secpps"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    container_name: secpps_backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://secpps:secpps_dev_password@db:5432/secpps
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  # frontend:
+  #   build:
+  #     context: ./frontend
+  #   container_name: secpps_frontend
+  #   restart: unless-stopped
+  #   ports:
+  #     - "5173:5173"
+  #   volumes:
+  #     - ./frontend:/app
+  #     - /app/node_modules
+  #   environment:
+  #     VITE_API_URL: http://localhost:8000
+  #   depends_on:
+  #     - backend
+  #   command: npm run dev -- --host
+
+volumes:
+  secpps_pgdata:
