@@ -33,3 +33,5 @@ def health_db():
 # --- Team: mount your routers below as you build them ---------------------
 # from api.routes import router as api_router
 # app.include_router(api_router, prefix="/api")
+from api.auth import router as auth_router
+app.include_router(auth_router, prefix="/auth", tags=["auth"])
