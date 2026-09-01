@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS weather_readings (
     precip_probability DOUBLE PRECISION,
     weather_icon VARCHAR(100),
     weather_summary VARCHAR(255),
+    shortwave_radiation DOUBLE PRECISION,
     source VARCHAR(50) NOT NULL,
     FOREIGN KEY (household_id)
         REFERENCES households(household_id)
