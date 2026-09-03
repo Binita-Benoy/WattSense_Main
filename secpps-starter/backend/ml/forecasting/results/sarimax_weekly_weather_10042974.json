@@ -1,0 +1,47 @@
+{
+  "household_id": 10042974,
+  "model": "SARIMAX weekly (weather-enhanced)",
+  "exog_columns": [
+    "temperature",
+    "humidity",
+    "shortwave_radiation"
+  ],
+  "train_days": 869,
+  "horizon_days": 7,
+  "predictions": [
+    {
+      "date": "2014-02-25",
+      "predicted_kwh": 10.04
+    },
+    {
+      "date": "2014-02-26",
+      "predicted_kwh": 9.66
+    },
+    {
+      "date": "2014-02-27",
+      "predicted_kwh": 9.12
+    },
+    {
+      "date": "2014-02-28",
+      "predicted_kwh": 7.55
+    },
+    {
+      "date": "2014-03-01",
+      "predicted_kwh": 7.57
+    },
+    {
+      "date": "2014-03-02",
+      "predicted_kwh": 9.11
+    },
+    {
+      "date": "2014-03-03",
+      "predicted_kwh": 7.08
+    }
+  ],
+  "metrics": {
+    "mae": 2.1837,
+    "rmse": 2.5884,
+    "mape": 58.47
+  },
+  "caveat": "Evaluated using ACTUAL test-period weather -- valid for backtesting only"
+}
