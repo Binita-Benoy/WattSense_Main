@@ -1,0 +1,147 @@
+{
+  "household_id": 99999999,
+  "latitude": -34.4278,
+  "longitude": 150.8931,
+  "model_selection": {
+    "winner": "sarimax",
+    "arima_metrics": {
+      "mae": 0.3391,
+      "rmse": 0.4375,
+      "mape": 105.43
+    },
+    "sarimax_metrics": {
+      "mae": 0.2641,
+      "rmse": 0.3182,
+      "mape": 578.34
+    },
+    "margin_pct": 22.12
+  },
+  "forecast_24h": [
+    {
+      "timestamp": "2026-09-03T03:00:00",
+      "predicted_kwh": 0.2422
+    },
+    {
+      "timestamp": "2026-09-03T04:00:00",
+      "predicted_kwh": 0.357
+    },
+    {
+      "timestamp": "2026-09-03T05:00:00",
+      "predicted_kwh": 0.4414
+    },
+    {
+      "timestamp": "2026-09-03T06:00:00",
+      "predicted_kwh": 0.4294
+    },
+    {
+      "timestamp": "2026-09-03T07:00:00",
+      "predicted_kwh": 0.4653
+    },
+    {
+      "timestamp": "2026-09-03T08:00:00",
+      "predicted_kwh": 0.4676
+    },
+    {
+      "timestamp": "2026-09-03T09:00:00",
+      "predicted_kwh": 0.451
+    },
+    {
+      "timestamp": "2026-09-03T10:00:00",
+      "predicted_kwh": 0.3887
+    },
+    {
+      "timestamp": "2026-09-03T11:00:00",
+      "predicted_kwh": 0.3138
+    },
+    {
+      "timestamp": "2026-09-03T12:00:00",
+      "predicted_kwh": 0.2895
+    },
+    {
+      "timestamp": "2026-09-03T13:00:00",
+      "predicted_kwh": 0.3031
+    },
+    {
+      "timestamp": "2026-09-03T14:00:00",
+      "predicted_kwh": 0.3539
+    },
+    {
+      "timestamp": "2026-09-03T15:00:00",
+      "predicted_kwh": 0.4293
+    },
+    {
+      "timestamp": "2026-09-03T16:00:00",
+      "predicted_kwh": 0.5125
+    },
+    {
+      "timestamp": "2026-09-03T17:00:00",
+      "predicted_kwh": 0.5802
+    },
+    {
+      "timestamp": "2026-09-03T18:00:00",
+      "predicted_kwh": 0.6074
+    },
+    {
+      "timestamp": "2026-09-03T19:00:00",
+      "predicted_kwh": 0.5771
+    },
+    {
+      "timestamp": "2026-09-03T20:00:00",
+      "predicted_kwh": 0.5397
+    },
+    {
+      "timestamp": "2026-09-03T21:00:00",
+      "predicted_kwh": 0.5124
+    },
+    {
+      "timestamp": "2026-09-03T22:00:00",
+      "predicted_kwh": 0.4885
+    },
+    {
+      "timestamp": "2026-09-03T23:00:00",
+      "predicted_kwh": 0.4749
+    },
+    {
+      "timestamp": "2026-09-04T00:00:00",
+      "predicted_kwh": 0.4647
+    },
+    {
+      "timestamp": "2026-09-04T01:00:00",
+      "predicted_kwh": 0.451
+    },
+    {
+      "timestamp": "2026-09-04T02:00:00",
+      "predicted_kwh": 0.4442
+    }
+  ],
+  "forecast_7day": [
+    {
+      "date": "2026-09-03",
+      "predicted_kwh": 6.24
+    },
+    {
+      "date": "2026-09-04",
+      "predicted_kwh": 10.26
+    },
+    {
+      "date": "2026-09-05",
+      "predicted_kwh": 10.59
+    },
+    {
+      "date": "2026-09-06",
+      "predicted_kwh": 5.95
+    },
+    {
+      "date": "2026-09-07",
+      "predicted_kwh": 6.42
+    },
+    {
+      "date": "2026-09-08",
+      "predicted_kwh": 5.98
+    },
+    {
+      "date": "2026-09-09",
+      "predicted_kwh": 4.72
+    }
+  ]
+}
