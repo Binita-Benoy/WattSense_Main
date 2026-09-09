@@ -13,6 +13,15 @@ from sqlalchemy import create_engine, text
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://secpps:secpps_dev_password@db:5432/secpps")
 
 app = FastAPI(title="SECPPS API", version="0.1.0")
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 
 
