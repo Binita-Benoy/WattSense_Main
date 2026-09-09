@@ -1,21 +1,19 @@
-version: "3.9"
-
 services:
   db:
-    image: timescale/timescaledb:latest-pg16
+    image: postgres:16
     container_name: secpps_db
     restart: unless-stopped
     environment:
       POSTGRES_USER: secpps
       POSTGRES_PASSWORD: secpps_dev_password
-      POSTGRES_DB: secpps
+      POSTGRES_DB: smart_energy
     ports:
       - "5432:5432"
     volumes:
       - secpps_pgdata:/var/lib/postgresql/data
       - ./infra/init-db:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U secpps -d secpps"]
+      test: ["CMD-SHELL", "pg_isready -U secpps -d smart_energy"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -25,14 +23,13 @@ services:
       context: ./backend
     container_name: secpps_backend
     restart: unless-stopped
-    env_file:
-      - .env
     environment:
-      DATABASE_URL: postgresql://secpps:secpps_dev_password@db:5432/secpps
+      DATABASE_URL: postgresql://secpps:secpps_dev_password@db:5432/smart_energy
     ports:
       - "8000:8000"
     volumes:
       - ./backend:/app
+      - ./data:/data
     depends_on:
       db:
         condition: service_healthy

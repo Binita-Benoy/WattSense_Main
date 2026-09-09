@@ -1,16 +1,23 @@
 """
-SECPPS backend entrypoint.
+SECPPS backend — basic working API over the real database.
 
-This is intentionally a thin stub so the whole team can run `docker compose up`
-on day one and see a working service, before any real logic exists.
-
-Jazim: wire real routers in here (api/, app_services/) as they're built.
+Endpoints:
+  GET /health              - liveness check
+  GET /health/db           - confirms DB connectivity
+  GET /api/households      - list households (for the dropdown)
+  GET /api/households/{household_id}/readings  - time series for charting
+  GET /api/households/{household_id}/summary   - quick stats for the dashboard
 """
-import os
-from fastapi import FastAPI
-from sqlalchemy import create_engine, text
+from datetime import datetime
+from typing import Optional
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://secpps:secpps_dev_password@db:5432/secpps")
+from fastapi import FastAPI, Depends, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import func, text
+from sqlalchemy.orm import Session
+
+from database import get_db, engine
+from models import Household, EnergyReading
 
 app = FastAPI(title="SECPPS API", version="0.1.0")
 from fastapi.middleware.cors import CORSMiddleware
@@ -32,11 +39,9 @@ def health():
 
 @app.get("/health/db")
 def health_db():
-    """Confirms the backend can actually reach Postgres/TimescaleDB."""
     with engine.connect() as conn:
-        result = conn.execute(text("SELECT 1"))
-        row = result.fetchone()
-    return {"status": "ok", "db_check": row[0] == 1}
+        conn.execute(text("SELECT 1"))
+    return {"status": "ok"}
 
 
 # --- Team: mount your routers below as you build them ---------------------
@@ -44,3 +49,81 @@ def health_db():
 # app.include_router(api_router, prefix="/api")
 from api.auth import router as auth_router
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
+@app.get("/api/households")
+def list_households(limit: int = 50, db: Session = Depends(get_db)):
+    """Returns households for the dashboard's household picker."""
+    rows = db.query(Household).limit(limit).all()
+    return [
+        {
+            "household_id": r.household_id,
+            "source": r.source,
+            "dwelling_type": r.dwelling_type,
+            "climate_zone": r.climate_zone,
+            "electricity_use_group": r.electricity_use_group,
+            "has_aircon": r.has_aircon,
+            "has_generation": r.has_generation,
+        }
+        for r in rows
+    ]
+
+
+@app.get("/api/households/{household_id}/readings")
+def get_readings(
+    household_id: int,
+    start: Optional[datetime] = Query(None),
+    end: Optional[datetime] = Query(None),
+    limit: int = Query(2000, le=20000),
+    db: Session = Depends(get_db),
+):
+    """Returns a time series of consumption for one household, for charting."""
+    q = db.query(EnergyReading).filter(EnergyReading.household_id == household_id)
+    if start:
+        q = q.filter(EnergyReading.reading_timestamp >= start)
+    if end:
+        q = q.filter(EnergyReading.reading_timestamp <= end)
+    q = q.order_by(EnergyReading.reading_timestamp).limit(limit)
+
+    rows = q.all()
+    if not rows:
+        raise HTTPException(status_code=404, detail="No readings found for this household")
+
+    return [
+        {
+            "reading_timestamp": r.reading_timestamp.isoformat(),
+            "consumption_kwh": r.consumption_kwh,
+            "controlled_load_kwh": r.controlled_load_kwh,
+            "gross_generation_kwh": r.gross_generation_kwh,
+            "net_generation_kwh": r.net_generation_kwh,
+        }
+        for r in rows
+    ]
+
+
+@app.get("/api/households/{household_id}/summary")
+def get_summary(household_id: int, db: Session = Depends(get_db)):
+    """Quick aggregate stats for the dashboard's stat cards."""
+    result = (
+        db.query(
+            func.count(EnergyReading.id),
+            func.avg(EnergyReading.consumption_kwh),
+            func.max(EnergyReading.consumption_kwh),
+            func.sum(EnergyReading.consumption_kwh),
+            func.min(EnergyReading.reading_timestamp),
+            func.max(EnergyReading.reading_timestamp),
+        )
+        .filter(EnergyReading.household_id == household_id)
+        .one()
+    )
+    count, avg_kwh, max_kwh, total_kwh, first_ts, last_ts = result
+    if count == 0:
+        raise HTTPException(status_code=404, detail="No readings found for this household")
+
+    return {
+        "household_id": household_id,
+        "reading_count": count,
+        "avg_kwh": round(avg_kwh, 4) if avg_kwh is not None else None,
+        "max_kwh": round(max_kwh, 4) if max_kwh is not None else None,
+        "total_kwh": round(total_kwh, 2) if total_kwh is not None else None,
+        "first_reading": first_ts.isoformat() if first_ts else None,
+        "last_reading": last_ts.isoformat() if last_ts else None,
+    }
