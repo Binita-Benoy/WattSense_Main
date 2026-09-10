@@ -216,3 +216,5 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+# ARIMA forecast output (generated, not source)
+secpps-starter/backend/ml/forecasting/results/
