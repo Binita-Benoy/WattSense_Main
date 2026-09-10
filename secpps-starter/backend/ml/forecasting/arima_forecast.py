@@ -1,18 +1,10 @@
 """
-Reusable ARIMA forecasting logic for US-04.
+TRAINING/EVALUATION TRACK - 24-hour version, NO weather (the original
+US-04 baseline). Real SGSC data, backtested against a real held-out day.
 
-This replaces the CLI-only version of arima_baseline.py with a function
-that anyone else's code can import and call directly:
-  - Jazim's API layer (US-07) calls generate_forecast() to serve live predictions
-  - Binita's comparison script (US-08) calls it across multiple households
-  - This file's own __main__ block still works as a CLI for manual testing
-
-Acceptance criteria satisfied here:
-  - ARIMA receives a household's historical data       -> load_series()
-  - ARIMA produces future predictions                   -> generate_forecast()
-  - Predictions have timestamps                         -> pd.date_range() in generate_forecast()
-  - MAE, RMSE, MAPE are calculated                       -> compute_metrics()
-  - Results are reproducible                             -> no randomness in ARIMA fitting; see test file
+This file is unchanged from its originally tested and merged version --
+kept exactly as-is since it's already proven and merged to main. It's
+included here only so this folder listing is complete.
 """
 import json
 import os
@@ -32,12 +24,6 @@ RESULTS_DIR = os.path.join(os.path.dirname(__file__), "results")
 
 
 def load_series(engine, household_id: int) -> pd.Series:
-    """Pulls raw readings for one household and resamples to hourly.
-
-    NOTE: minimal inline cleaning (resample + forward-fill) until Alka's
-    clean_readings table/view exists — swap the query source then, nothing
-    else in this file needs to change.
-    """
     query = """
         SELECT reading_timestamp, consumption_kwh
         FROM energy_readings
@@ -66,28 +52,14 @@ def compute_metrics(y_true, y_pred) -> dict:
 
 
 def generate_forecast(
-    engine,
-    household_id: int,
-    horizon_hours: int = 24,
-    order: tuple = (2, 1, 2),
-    evaluate: bool = True,
+    engine, household_id: int, horizon_hours: int = 24,
+    order: tuple = (2, 1, 2), evaluate: bool = True,
 ) -> dict:
-    """
-    Core reusable function. Returns a plain dict (JSON-serialisable) so it's
-    equally easy to call from a script, a test, or a FastAPI endpoint.
-
-    If evaluate=True, holds out the last `horizon_hours` of REAL data to
-    score against (what your ARIMA baseline script already did).
-    If evaluate=False, forecasts truly into the future beyond the data
-    you have (no metrics possible, since there's nothing to compare against).
-    """
     series = load_series(engine, household_id)
 
     if evaluate:
         if len(series) < horizon_hours + 48:
-            raise ValueError(
-                f"Not enough data for household {household_id}: {len(series)} hourly points"
-            )
+            raise ValueError(f"Not enough data for household {household_id}: {len(series)} hourly points")
         train = series.iloc[:-horizon_hours]
         test = series.iloc[-horizon_hours:]
     else:
@@ -98,8 +70,6 @@ def generate_forecast(
     fitted = model.fit()
     forecast_values = fitted.forecast(steps=horizon_hours)
 
-    # Attach real timestamps: the next `horizon_hours` hours after the
-    # last point the model was trained on.
     last_ts = train.index[-1]
     future_index = pd.date_range(start=last_ts, periods=horizon_hours + 1, freq="h")[1:]
 
@@ -109,12 +79,9 @@ def generate_forecast(
     ]
 
     result = {
-        "household_id": household_id,
-        "model": "ARIMA",
-        "order": list(order),
+        "household_id": household_id, "model": "ARIMA", "order": list(order),
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "train_hours": len(train),
-        "horizon_hours": horizon_hours,
+        "train_hours": len(train), "horizon_hours": horizon_hours,
         "predictions": predictions,
     }
 
@@ -129,15 +96,6 @@ def generate_forecast(
 
 
 def save_forecast_result(result: dict) -> str:
-    """
-    Saves a forecast result to a JSON file under results/.
-
-    NOTE: this is a simple file-based save to unblock US-04 today. Longer
-    term, this probably becomes a `forecast_results` DB table so the API
-    can query history — but that's a schema change, which is Alka's domain.
-    Raise it with her before adding a new table, rather than doing it
-    unilaterally on the shared database.
-    """
     os.makedirs(RESULTS_DIR, exist_ok=True)
     filename = f"arima_{result['household_id']}_{result['generated_at'].replace(':', '-')}.json"
     path = os.path.join(RESULTS_DIR, filename)
