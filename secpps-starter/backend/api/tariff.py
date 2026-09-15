@@ -1,6 +1,7 @@
 """
 api/tariff.py
 
+
 Endpoints:
   GET /api/households/{household_id}/tariff  - US-20: view tariff structure
   GET /api/households/{household_id}/cost    - US-21: current cycle cost
