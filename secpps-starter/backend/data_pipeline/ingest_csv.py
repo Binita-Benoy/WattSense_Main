@@ -1,8 +1,8 @@
 """
 SGSC cleaned-data ingestion pipeline.
 
-Loads the cleaned, hourly SGSC dataset into the WattSense PostgreSQL /
-TimescaleDB database.
+Loads the cleaned hourly SGSC dataset and selected household metadata
+into the WattSense PostgreSQL database.
 
 Owner: Alka - Data Engineering
 """
@@ -25,6 +25,10 @@ DEFAULT_INPUT_FILE = (
     BASE_DIR / "data" / "processed" / "sgsc_hourly_clean.csv"
 )
 
+METADATA_FILE = (
+    BASE_DIR / "data" / "interim" / "sgsc_selected_30_households.csv"
+)
+
 BATCH_SIZE = 5000
 
 
@@ -37,7 +41,7 @@ def get_engine():
 
 
 def validate_input(df: pd.DataFrame) -> None:
-    """Validate the cleaned SGSC dataset before database ingestion."""
+    """Validate cleaned SGSC data before database ingestion."""
 
     required_columns = {
         "CUSTOMER_ID",
@@ -78,34 +82,140 @@ def validate_input(df: pd.DataFrame) -> None:
         )
 
 
-def load_households(connection, household_ids):
-    """
-    Ensure all SGSC households exist before energy readings are inserted.
+def convert_yes_no(value):
+    """Convert SGSC Y/N values to PostgreSQL boolean values."""
 
-    Household metadata can be enriched separately from the SGSC household
-    metadata dataset.
+    if pd.isna(value):
+        return None
+
+    value = str(value).strip().upper()
+
+    if value == "Y":
+        return True
+
+    if value == "N":
+        return False
+
+    return None
+
+
+def clean_metadata_value(value):
+    """Convert pandas missing values to None for PostgreSQL."""
+
+    if pd.isna(value):
+        return None
+
+    return str(value).strip()
+
+
+def load_household_metadata():
+    """Read metadata for the selected 30 SGSC households."""
+
+    if not METADATA_FILE.exists():
+        raise FileNotFoundError(
+            f"SGSC household metadata file not found: {METADATA_FILE}"
+        )
+
+    metadata = pd.read_csv(
+        METADATA_FILE,
+        low_memory=False,
+    )
+
+    required_columns = {
+        "CUSTOMER_ID",
+        "DWELLING_TYPE_CD",
+        "ASSRTD_CLIMATE_ZONE_DESC",
+        "ASSRTD_ELECTRICITY_USE_GRP_CD",
+        "HAS_AIRCON",
+        "HAS_GENERATION",
+    }
+
+    missing = required_columns - set(metadata.columns)
+
+    if missing:
+        raise ValueError(
+            "Selected household metadata is missing columns: "
+            f"{sorted(missing)}"
+        )
+
+    metadata["CUSTOMER_ID"] = pd.to_numeric(
+        metadata["CUSTOMER_ID"],
+        errors="coerce",
+    )
+
+    if metadata["CUSTOMER_ID"].isna().any():
+        raise ValueError(
+            "Selected household metadata contains invalid CUSTOMER_ID values."
+        )
+
+    metadata = metadata.drop_duplicates(
+        subset=["CUSTOMER_ID"],
+        keep="first",
+    )
+
+    return metadata
+
+
+def load_households(connection, metadata: pd.DataFrame):
+    """
+    Insert/update SGSC households using the existing households schema.
     """
 
     statement = text(
         """
         INSERT INTO households (
             household_id,
-            source
+            source,
+            dwelling_type,
+            climate_zone,
+            electricity_use_group,
+            has_aircon,
+            has_generation
         )
         VALUES (
             :household_id,
-            'SGSC'
+            :source,
+            :dwelling_type,
+            :climate_zone,
+            :electricity_use_group,
+            :has_aircon,
+            :has_generation
         )
         ON CONFLICT (household_id)
         DO UPDATE SET
-            source = EXCLUDED.source;
+            source = EXCLUDED.source,
+            dwelling_type = EXCLUDED.dwelling_type,
+            climate_zone = EXCLUDED.climate_zone,
+            electricity_use_group = EXCLUDED.electricity_use_group,
+            has_aircon = EXCLUDED.has_aircon,
+            has_generation = EXCLUDED.has_generation;
         """
     )
 
-    rows = [
-        {"household_id": int(household_id)}
-        for household_id in household_ids
-    ]
+    rows = []
+
+    for row in metadata.itertuples(index=False):
+        rows.append(
+            {
+                "household_id": int(row.CUSTOMER_ID),
+                "source": "SGSC",
+                "dwelling_type": clean_metadata_value(
+                    row.DWELLING_TYPE_CD
+                ),
+                "climate_zone": clean_metadata_value(
+                    row.ASSRTD_CLIMATE_ZONE_DESC
+                ),
+                "electricity_use_group": clean_metadata_value(
+                    row.ASSRTD_ELECTRICITY_USE_GRP_CD
+                ),
+                "has_aircon": convert_yes_no(
+                    row.HAS_AIRCON
+                ),
+                "has_generation": convert_yes_no(
+                    row.HAS_GENERATION
+                ),
+            }
+        )
 
     connection.execute(statement, rows)
 
@@ -186,9 +296,10 @@ def load_energy_batch(connection, rows):
 
 
 def verify_database(engine):
-    """Print SGSC database counts after ingestion."""
+    """Verify SGSC database counts and household metadata."""
 
     with engine.connect() as connection:
+
         household_count = connection.execute(
             text(
                 """
@@ -209,10 +320,23 @@ def verify_database(engine):
             )
         ).scalar_one()
 
+        metadata_count = connection.execute(
+            text(
+                """
+                SELECT COUNT(*)
+                FROM households
+                WHERE source = 'SGSC'
+                  AND climate_zone IS NOT NULL
+                  AND electricity_use_group IS NOT NULL;
+                """
+            )
+        ).scalar_one()
+
         print("\nDatabase verification")
         print("---------------------")
-        print(f"SGSC households:      {household_count:,}")
-        print(f"SGSC energy readings: {energy_count:,}")
+        print(f"SGSC households:               {household_count:,}")
+        print(f"SGSC energy readings:          {energy_count:,}")
+        print(f"Households with core metadata: {metadata_count:,}")
 
 
 def ingest_csv(input_file=DEFAULT_INPUT_FILE):
@@ -220,7 +344,7 @@ def ingest_csv(input_file=DEFAULT_INPUT_FILE):
 
     input_file = Path(input_file)
 
-    print(f"Reading cleaned SGSC data:")
+    print("Reading cleaned SGSC data:")
     print(input_file)
 
     if not input_file.exists():
@@ -228,9 +352,20 @@ def ingest_csv(input_file=DEFAULT_INPUT_FILE):
             f"Cleaned SGSC file not found: {input_file}"
         )
 
-    df = pd.read_csv(input_file)
+    df = pd.read_csv(
+        input_file,
+        low_memory=False,
+    )
+
+    # Defensive cleanup in case CSV headers contain whitespace.
+    df.columns = df.columns.str.strip()
 
     print(f"Rows loaded: {len(df):,}")
+
+    df["CUSTOMER_ID"] = pd.to_numeric(
+        df["CUSTOMER_ID"],
+        errors="coerce",
+    )
 
     df["READING_DATETIME"] = pd.to_datetime(
         df["READING_DATETIME"],
@@ -253,23 +388,58 @@ def ingest_csv(input_file=DEFAULT_INPUT_FILE):
     validate_input(df)
 
     household_ids = sorted(
-        df["CUSTOMER_ID"].astype(int).unique()
+        df["CUSTOMER_ID"]
+        .astype(int)
+        .unique()
     )
 
-    print(f"Households: {len(household_ids)}")
+    print(f"Households in energy dataset: {len(household_ids)}")
+
+    metadata = load_household_metadata()
+
+    metadata_ids = set(
+        metadata["CUSTOMER_ID"]
+        .astype(int)
+        .tolist()
+    )
+
+    energy_ids = set(household_ids)
+
+    missing_metadata = energy_ids - metadata_ids
+
+    if missing_metadata:
+        raise ValueError(
+            "Metadata missing for these households: "
+            f"{sorted(missing_metadata)}"
+        )
+
+    # Only metadata belonging to households present in the
+    # cleaned energy dataset is inserted.
+    metadata = metadata[
+        metadata["CUSTOMER_ID"]
+        .astype(int)
+        .isin(energy_ids)
+    ].copy()
+
+    print(f"Households with metadata: {len(metadata)}")
 
     engine = get_engine()
 
-    # Insert households first because energy_readings has a FK.
+    # households must exist first because energy_readings
+    # references households through a foreign key.
     with engine.begin() as connection:
         load_households(
             connection,
-            household_ids,
+            metadata,
         )
 
     total_rows = len(df)
 
-    for start in range(0, total_rows, BATCH_SIZE):
+    for start in range(
+        0,
+        total_rows,
+        BATCH_SIZE,
+    ):
         end = min(
             start + BATCH_SIZE,
             total_rows,
