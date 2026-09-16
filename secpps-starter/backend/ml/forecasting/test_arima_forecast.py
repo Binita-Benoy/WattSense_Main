@@ -15,7 +15,6 @@ DATABASE_URL = os.getenv(
     "DATABASE_URL", "postgresql://secpps:secpps_dev_password@db:5432/smart_energy"
 )
 
-# TODO: replace with a real household_id confirmed to have >72 hourly readings
 KNOWN_HOUSEHOLD_ID = 10859314
 
 
