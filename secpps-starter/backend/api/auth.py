@@ -1,16 +1,13 @@
 """
 Auth routes: register, login, and a get_current_user dependency other
 routers can import to protect their own endpoints.
-
-Mount in main.py with:
-    from api.auth import router as auth_router
-    app.include_router(auth_router, prefix="/auth", tags=["auth"])
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr, ConfigDict
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 
 from app_services.auth_service import (
     create_access_token,
@@ -18,19 +15,15 @@ from app_services.auth_service import (
     hash_password,
     verify_password,
 )
-from db import Base, engine, get_db
+from database import Base, engine, get_db
 from models_auth import User
+from models import Household
 
-# Creates the users table alongside existing ML/household tables.
 Base.metadata.create_all(bind=engine)
 
 router = APIRouter()
-
-# tokenUrl reflects the mounted path: prefix="/auth" + "/login"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
-
-# --- Schemas ---------------------------------------------------------------
 
 class UserCreate(BaseModel):
     email: EmailStr
@@ -40,6 +33,7 @@ class UserCreate(BaseModel):
 class UserOut(BaseModel):
     id: int
     email: EmailStr
+    household_id: int
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -47,8 +41,6 @@ class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
 
-
-# --- Dependency other routers can import to protect their routes ----------
 
 credentials_exception = HTTPException(
     status_code=status.HTTP_401_UNAUTHORIZED,
@@ -76,8 +68,6 @@ def get_current_user(
     return user
 
 
-# --- Routes ------------------------------------------------------------
-
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 def register(user_in: UserCreate, db: Session = Depends(get_db)):
     existing_user = db.query(User).filter(User.email == user_in.email).first()
@@ -87,12 +77,36 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
             detail="An account with this email already exists.",
         )
 
+    claimed_ids = db.query(User.household_id)
+    next_household = (
+        db.query(Household.household_id)
+        .filter(~Household.household_id.in_(claimed_ids))
+        .order_by(Household.household_id)
+        .first()
+    )
+
+    if next_household is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="No unclaimed households are available right now.",
+        )
+
     new_user = User(
         email=user_in.email,
         hashed_password=hash_password(user_in.password),
+        household_id=next_household.household_id,
     )
     db.add(new_user)
-    db.commit()
+
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Household assignment conflict, please try registering again.",
+        )
+
     db.refresh(new_user)
     return new_user
 

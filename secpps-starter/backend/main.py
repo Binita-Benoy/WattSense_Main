@@ -20,7 +20,6 @@ from database import get_db, engine
 from models import Household, EnergyReading
 
 app = FastAPI(title="SECPPS API", version="0.1.0")
-from fastapi.middleware.cors import CORSMiddleware
 
 app.add_middleware(
     CORSMiddleware,
@@ -29,7 +28,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+#engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 
 
 @app.get("/health")
