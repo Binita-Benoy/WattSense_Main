@@ -136,20 +136,42 @@ def preprocess_household(group: pd.DataFrame) -> pd.DataFrame:
     return group.reset_index()
 
 
-def resample_hourly(df: pd.DataFrame) -> pd.DataFrame:
+def resample_hourly(df):
+    """
+    Resample SGSC 30-minute interval energy readings to hourly data.
+
+    SGSC energy values are kWh consumed/generated during each
+    30-minute interval, so hourly values must be calculated using SUM.
+    """
+
     hourly_frames = []
 
-    for household_id, group in df.groupby("CUSTOMER_ID"):
-        group = group.sort_values("READING_DATETIME").copy()
-        group = group.set_index("READING_DATETIME")
+    for customer_id, group in df.groupby("CUSTOMER_ID"):
 
-        hourly = group[ENERGY_COLUMNS].resample("1h").sum()
+        group = group.copy()
 
-        hourly["CUSTOMER_ID"] = household_id
+        # READING_DATETIME must be the DatetimeIndex for resampling.
+        if "READING_DATETIME" in group.columns:
+            group = group.set_index("READING_DATETIME")
 
-        hourly_frames.append(hourly.reset_index())
+        # Keep only energy columns before resampling.
+        energy = group[ENERGY_COLUMNS].copy()
 
-    return pd.concat(hourly_frames, ignore_index=True)
+        # Two 30-minute kWh intervals -> one hourly kWh value.
+        hourly = energy.resample("1h").sum()
+
+        hourly["CUSTOMER_ID"] = customer_id
+
+        hourly = hourly.reset_index()
+
+        hourly_frames.append(hourly)
+
+    hourly_df = pd.concat(
+        hourly_frames,
+        ignore_index=True
+    )
+
+    return hourly_df
 
 
 def validate_output(df: pd.DataFrame) -> None:
@@ -191,6 +213,9 @@ def clean_sgsc(
 
     df = pd.read_csv(input_file)
 
+    # Remove leading/trailing whitespace from SGSC column names.
+    df.columns = df.columns.str.strip()
+
     print(f"Input rows: {len(df):,}")
 
     df = parse_timestamps(df)
@@ -226,11 +251,10 @@ def clean_sgsc(
         index=False,
     )
 
-    print(f"\nSaved cleaned hourly SGSC data to:")
+    print("\nSaved cleaned hourly SGSC data to:")
     print(output_file)
 
     return hourly
-
 
 if __name__ == "__main__":
     clean_sgsc()
