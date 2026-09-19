@@ -35,15 +35,21 @@ def _hh_sql():
 def load_energy_readings() -> pd.DataFrame:
     engine = get_engine()
     query = f"""
-        SELECT household_id, reading_timestamp, consumption_kwh,
-               controlled_load_kwh, gross_generation_kwh,
-               net_generation_kwh, other_kwh, source
-        FROM energy_readings
-        WHERE household_id IN ({_hh_sql()})
-        ORDER BY household_id, reading_timestamp
+    SELECT household_id, reading_timestamp, consumption_kwh,
+           controlled_load_kwh, gross_generation_kwh,
+           net_generation_kwh, other_kwh, source,
+           is_public_holiday
+    FROM energy_readings
+    WHERE household_id IN ({_hh_sql()})
+    ORDER BY household_id, reading_timestamp
     """
     df = pd.read_sql(query, engine, parse_dates=[DB_TIMESTAMP])
     df = df.rename(columns={DB_TIMESTAMP: COL_TIMESTAMP, DB_KWH: COL_KWH})
+    df["is_public_holiday"] = (
+        df["is_public_holiday"]
+        .fillna(False)
+        .astype(int)
+        )
     df = df.set_index(COL_TIMESTAMP)
     df.index.name = COL_TIMESTAMP
     return df

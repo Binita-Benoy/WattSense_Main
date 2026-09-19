@@ -22,10 +22,20 @@ logger = logging.getLogger()
 
 AE_FEATURES = [
     COL_KWH,
+
+    # Energy/history
     "lag_1h", "lag_24h", "lag_168h",
+
+    # Calendar context
     "hour_sin", "hour_cos", "dow_sin", "dow_cos",
-    "rolling_24h_mean", "rolling_24h_std", "deviation_24h", "z_score",
+    "is_public_holiday",
+
+    # Energy behaviour
+    "rolling_24h_mean", "rolling_24h_std",
+    "deviation_24h", "z_score",
     "change_1h", "peak_ratio",
+
+    # Weather context
     "temperature", "apparent_temperature", "humidity", "wind_speed",
     "precip_intensity", "dew_point", "shortwave_radiation",
     "temperature_deviation_24h", "cooling_degree", "heating_degree"

@@ -44,6 +44,16 @@ def add_cyclical_features(df):
     df["hour"] = hour
     df["day_of_week"] = dow
     df["is_weekend"] = (dow >= 5).astype(int)
+
+    if "is_public_holiday" in df.columns:
+        df["is_public_holiday"] = (
+            df["is_public_holiday"]
+            .fillna(0)
+            .astype(int)
+        )
+    else:
+        df["is_public_holiday"] = 0
+
     return df
 
 
@@ -155,6 +165,10 @@ def build_feature_matrix(df_all, save=True):
 
     F = pd.concat(all_features, axis=0).sort_index()
 
+    if "is_public_holiday" in F.columns:
+        holiday_rows = int(F["is_public_holiday"].sum())
+        log_print(f"Public holiday rows in feature matrix: {holiday_rows:,}")
+
     # Final numeric cleanup. This avoids model failures caused by empty weather columns.
     numeric_cols = F.select_dtypes(include=[np.number]).columns
     F[numeric_cols] = F[numeric_cols].replace([np.inf, -np.inf], np.nan)
@@ -178,11 +192,13 @@ def verify_us10(F):
     required = [
         "lag_1h", "lag_24h", "lag_48h", "lag_168h",
         "hour_sin", "hour_cos", "dow_sin", "dow_cos",
-        "rolling_7d_mean", "rolling_7d_std", "rolling_30d_mean", "rolling_30d_std",
+        "is_weekend", "is_public_holiday",
+        "rolling_7d_mean", "rolling_7d_std",
+        "rolling_30d_mean", "rolling_30d_std",
         "is_peak", "deviation_24h", "z_score",
         "temperature", "humidity", "apparent_temperature", "wind_speed",
-        "shortwave_radiation", "temperature_deviation_24h", "cooling_degree",
-        "heating_degree"
+        "shortwave_radiation", "temperature_deviation_24h",
+        "cooling_degree", "heating_degree"
     ]
     log_print("\nUS-10 ACCEPTANCE CRITERIA")
     passed = True

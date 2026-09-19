@@ -26,7 +26,7 @@ IF_FEATURES = [
     "change_1h", "change_24h", "abs_change_1h", "peak_ratio",
     # Calendar context
     "hour_sin", "hour_cos", "dow_sin", "dow_cos", "month_sin", "month_cos",
-    "is_peak", "is_weekend", "season",
+    "is_peak", "is_weekend", "is_public_holiday", "season",
     # Weather context
     "temperature", "humidity", "apparent_temperature", "pressure", "wind_speed",
     "cloud_cover", "precip_intensity", "dew_point", "precip_probability",
