@@ -5,7 +5,7 @@
 
 This directory contains the data engineering pipeline for the WattSense smart energy platform.
 
-The pipeline processes Australian Smart Grid Smart City (SGSC) household energy data, selects and extracts 30 household profiles, preprocesses the interval readings into continuous hourly energy data, stores the results in PostgreSQL, retrieves historical weather data from Open-Meteo, and integrates the energy and weather datasets for downstream machine learning and forecasting.
+The pipeline processes Australian Smart Grid Smart City (SGSC) household energy data, selects and extracts 30 household profiles, preprocesses interval readings into continuous hourly energy data, stores the processed data in PostgreSQL, retrieves historical weather data from Open-Meteo, incorporates NSW public-holiday information, and provides an integrated dataset for downstream machine learning and forecasting.
 
 ---
 
@@ -28,6 +28,8 @@ The following components have been implemented:
 - Weather-to-household integration
 - Solar irradiance (`shortwave_radiation`) integration
 - Energy/weather timestamp validation
+- NSW public-holiday enrichment
+- Public-holiday validation
 - Docker integration
 - Reproducible PostgreSQL database dump
 - Database dump restore verification
@@ -39,6 +41,8 @@ Current database contents:
 | SGSC households | 30 |
 | SGSC hourly energy readings | 625,424 |
 | Open-Meteo weather readings | 630,120 |
+| NSW public-holiday dates represented | 28 |
+| SGSC public-holiday energy readings | 20,160 |
 
 Energy-to-weather matching has been validated with:
 
@@ -47,6 +51,14 @@ Total SGSC energy readings: 625,424
 Matched weather readings:   625,424
 Missing weather readings:   0
 Weather coverage:            100.00%
+```
+
+Public-holiday enrichment has been validated with:
+
+```text
+Total SGSC energy readings: 625,424
+Public-holiday dates:       28
+Public-holiday rows:        20,160
 ```
 
 HomeC is **not used in the current pipeline or database**.
@@ -61,7 +73,8 @@ backend/data_pipeline/
 ├── extract_sgsc.py
 ├── clean.py
 ├── ingest_csv.py
-└── weather.py
+├── weather.py
+└── holidays.py
 ```
 
 ### `extract_sgsc.py`
@@ -114,6 +127,27 @@ Loads the cleaned hourly energy data and selected household metadata into Postgr
 ### `weather.py`
 
 Retrieves historical Open-Meteo weather data corresponding to the SGSC energy period and stores it in PostgreSQL.
+
+### `holidays.py`
+
+Enriches SGSC hourly energy readings with NSW statewide public-holiday information.
+
+The script maps historical NSW public-holiday dates to the date component of `reading_timestamp` and populates the `is_public_holiday` boolean field in `energy_readings`.
+
+The holiday enrichment covers the SGSC study period from October 2011 to March 2014.
+
+Current validation:
+
+```text
+NSW public-holiday dates represented: 28
+SGSC public-holiday energy rows:      20,160
+```
+
+For a complete public-holiday date:
+
+```text
+30 households × 24 hourly readings = 720 energy rows
+```
 
 ---
 
@@ -285,7 +319,7 @@ Duplicate readings removed:  118
 
 For each household, the pipeline reconstructs the expected continuous 30-minute time index.
 
-Missing intervals are filled using time-aware interpolation.
+Missing intervals are filled using time-aware linear interpolation.
 
 A rolling 3-sigma method is then used for outlier treatment:
 
@@ -319,11 +353,11 @@ The final processed dataset contains:
 Final validation:
 
 ```text
-Missing GENERAL_SUPPLY_KWH:             0
-Duplicate household/timestamp pairs:    0
-Negative GENERAL_SUPPLY_KWH:            0
-Non-hour-aligned timestamps:            0
-Missing hourly timestamps:              0
+Missing GENERAL_SUPPLY_KWH:          0
+Duplicate household/timestamp pairs: 0
+Negative GENERAL_SUPPLY_KWH:         0
+Non-hour-aligned timestamps:         0
+Missing hourly timestamps:           0
 ```
 
 Hourly continuity was checked independently for every household.
@@ -378,7 +412,7 @@ missing_hours = 0
 
 `ingest_csv.py` loads both household metadata and cleaned hourly SGSC energy data into PostgreSQL.
 
-Household metadata is mapped to the existing database schema as follows:
+Household metadata is mapped to the database schema as follows:
 
 | SGSC Field | Database Column |
 |---|---|
@@ -458,7 +492,7 @@ The following hourly weather variables are retrieved:
 | `wind_direction_10m` | `wind_bearing` |
 | `shortwave_radiation` | `shortwave_radiation` |
 
-`shortwave_radiation` provides the solar-radiation weather feature required by the project.
+`shortwave_radiation` provides a solar-radiation weather attribute that can be used by downstream analytical components.
 
 The common weather series is associated with each selected SGSC household to provide a direct household/timestamp join interface for downstream processing.
 
@@ -519,9 +553,65 @@ Therefore, every SGSC hourly energy reading in the current dataset has correspon
 
 ---
 
+## 10. NSW Public Holiday Integration
+
+Public-holiday information is incorporated as an additional temporal data source.
+
+The `energy_readings` table contains:
+
+```sql
+is_public_holiday BOOLEAN NOT NULL DEFAULT FALSE
+```
+
+The `holidays.py` pipeline identifies NSW statewide public holidays occurring during the SGSC study period and maps them to the date component of each SGSC `reading_timestamp`.
+
+Corresponding energy readings are marked as:
+
+```text
+is_public_holiday = TRUE
+```
+
+All other SGSC energy readings remain:
+
+```text
+is_public_holiday = FALSE
+```
+
+Run:
+
+```bash
+docker compose exec backend python data_pipeline/holidays.py
+```
+
+Final validation:
+
+| Metric | Result |
+|---|---:|
+| Total SGSC energy readings | 625,424 |
+| NSW public-holiday dates represented | 28 |
+| Public-holiday energy readings | 20,160 |
+
+For complete public-holiday dates:
+
+```text
+30 households × 24 hours = 720 hourly readings per holiday
+```
+
+and:
+
+```text
+28 holiday dates × 720 readings = 20,160 public-holiday readings
+```
+
+Only NSW statewide public holidays are included. Local or regional holidays are excluded.
+
+The public-holiday indicator provides a calendar-based attribute that downstream machine-learning components can use when analysing differences between ordinary-day and public-holiday electricity-consumption patterns.
+
+---
+
 # Database Setup
 
-## 10. PostgreSQL with Docker
+## 11. PostgreSQL with Docker
 
 The development database runs through Docker Compose.
 
@@ -560,7 +650,7 @@ The database service should report a healthy status.
 
 ---
 
-## 11. Backend Database Connection
+## 12. Backend Database Connection
 
 Inside Docker, the backend connects to PostgreSQL using:
 
@@ -590,7 +680,7 @@ provided another local PostgreSQL service is not already using that port.
 
 ---
 
-## 12. Connecting to PostgreSQL
+## 13. Connecting to PostgreSQL
 
 Open PostgreSQL inside the database container:
 
@@ -616,7 +706,7 @@ Shows the household schema.
 \d energy_readings
 ```
 
-Shows the energy schema.
+Shows the energy schema, including the `is_public_holiday` field.
 
 ```sql
 \d weather_readings
@@ -632,7 +722,7 @@ Exit with:
 
 ---
 
-## 13. Checking Database Contents
+## 14. Checking Database Contents
 
 SGSC households:
 
@@ -664,6 +754,23 @@ GROUP BY source;
 "
 ```
 
+Public-holiday readings:
+
+```bash
+docker compose exec db psql -U secpps -d smart_energy -c "
+SELECT
+    COUNT(*) FILTER (
+        WHERE is_public_holiday = TRUE
+    ) AS public_holiday_rows,
+    COUNT(DISTINCT reading_timestamp::date)
+        FILTER (
+            WHERE is_public_holiday = TRUE
+        ) AS public_holiday_dates
+FROM energy_readings
+WHERE source = 'SGSC';
+"
+```
+
 Expected values:
 
 ```text
@@ -675,13 +782,19 @@ SGSC          625424
 
 weather_readings:
 Open-Meteo    630120
+
+public_holiday_rows:
+20160
+
+public_holiday_dates:
+28
 ```
 
 ---
 
 # Database Dump
 
-## 14. `smart_energy.dump`
+## 15. `smart_energy.dump`
 
 A reproducible PostgreSQL database dump is included at:
 
@@ -695,15 +808,17 @@ The current verified dump contains:
 30 SGSC households
 625,424 SGSC hourly energy readings
 630,120 Open-Meteo weather readings
+28 NSW public-holiday dates represented
+20,160 SGSC energy readings marked as public holidays
 ```
 
-It also contains the PostgreSQL table structures, constraints, indexes, sequences, household metadata, and weather data.
+It also contains the PostgreSQL table structures, constraints, indexes, sequences, household metadata, weather data, and the `is_public_holiday` energy-reading attribute.
 
 HomeC is not part of the current database snapshot.
 
 ---
 
-## 15. Automatic Dump Restore
+## 16. Automatic Dump Restore
 
 The repository contains:
 
@@ -736,11 +851,11 @@ docker compose stop
 docker compose start
 ```
 
-does not restore the dump again.
+does not restore the database again.
 
 ---
 
-## 16. Manually Restoring the Dump
+## 17. Manually Restoring the Dump
 
 Create a temporary empty database:
 
@@ -771,7 +886,7 @@ docker compose exec db psql \
 
 ---
 
-## 17. Creating an Updated Dump
+## 18. Creating an Updated Dump
 
 After intentionally changing and validating the database:
 
@@ -788,17 +903,21 @@ Do not regenerate the shared dump from an unverified development database.
 
 ---
 
-## 18. Verifying the Dump
+## 19. Verifying the Dump
 
 For strong verification, restore the dump into a temporary database:
 
 ```bash
+docker compose exec db dropdb \
+  -U secpps \
+  --if-exists smart_energy_test
+
 docker compose exec db createdb \
   -U secpps \
   smart_energy_test
 ```
 
-Restore it:
+Restore:
 
 ```bash
 docker compose exec -T db pg_restore \
@@ -826,19 +945,29 @@ SELECT
 
     (SELECT COUNT(*)
      FROM weather_readings
-     WHERE source = 'Open-Meteo') AS weather_rows;
+     WHERE source = 'Open-Meteo') AS weather_rows,
+
+    (SELECT COUNT(*)
+     FROM energy_readings
+     WHERE source = 'SGSC'
+       AND is_public_holiday = TRUE) AS holiday_rows,
+
+    (SELECT COUNT(DISTINCT reading_timestamp::date)
+     FROM energy_readings
+     WHERE source = 'SGSC'
+       AND is_public_holiday = TRUE) AS holiday_dates;
 "
 ```
 
 Expected:
 
 ```text
-households | energy_rows | weather_rows
------------+-------------+-------------
-30         | 625424      | 630120
+households | energy_rows | weather_rows | holiday_rows | holiday_dates
+-----------+-------------+--------------+--------------+--------------
+30         | 625424      | 630120       | 20160        | 28
 ```
 
-The current dump has been restore-tested successfully against these counts.
+The current database dump has been restored and verified successfully against these counts.
 
 After verification:
 
@@ -852,13 +981,13 @@ docker compose exec db dropdb \
 
 # Running the Data Pipeline
 
-## 19. Pipeline Order
+## 20. Pipeline Order
 
 When rebuilding from source rather than using the populated database dump, run the pipeline in the following order.
 
 ### Step 1 — Select and Extract SGSC Households
 
-The selection stage can be run independently to generate the 30-household selection.
+The selection stage generates the 30-household selection.
 
 Extraction from the full SGSC interval file is performed with:
 
@@ -926,7 +1055,24 @@ Rows:       630,120
 Households: 30
 ```
 
-### Step 5 — Validate Energy/Weather Coverage
+### Step 5 — Add NSW Public Holiday Information
+
+```bash
+docker compose exec backend python data_pipeline/holidays.py
+```
+
+Expected:
+
+```text
+Holiday energy rows marked: 20,160
+
+Public holiday verification:
+Total SGSC energy rows: 625,424
+Holiday energy rows:    20,160
+Holiday dates present:  28
+```
+
+### Step 6 — Validate Energy/Weather Coverage
 
 ```sql
 SELECT
@@ -954,20 +1100,45 @@ missing_weather_rows:     0
 weather_coverage_percent: 100.00
 ```
 
+### Step 7 — Validate Public Holiday Enrichment
+
+```sql
+SELECT
+    COUNT(*) AS total_energy_rows,
+    COUNT(*) FILTER (
+        WHERE is_public_holiday = TRUE
+    ) AS holiday_rows,
+    COUNT(DISTINCT reading_timestamp::date)
+        FILTER (
+            WHERE is_public_holiday = TRUE
+        ) AS holiday_dates
+FROM energy_readings
+WHERE source = 'SGSC';
+```
+
+Expected:
+
+```text
+total_energy_rows: 625424
+holiday_rows:      20160
+holiday_dates:     28
+```
+
 ---
 
 # Downstream Usage
 
-## 20. Data Available to ML and Forecasting
+## 21. Data Available to ML and Forecasting
 
 The data engineering pipeline provides:
 
 - continuous hourly household energy readings;
 - household metadata;
-- aligned historical weather data; and
+- aligned historical weather data;
+- NSW public-holiday information; and
 - a validated household/timestamp interface for downstream ML components.
 
-A downstream query can join the datasets with:
+A downstream query can join the energy and weather datasets with:
 
 ```sql
 SELECT
@@ -978,6 +1149,7 @@ SELECT
     e.gross_generation_kwh,
     e.net_generation_kwh,
     e.other_kwh,
+    e.is_public_holiday,
     w.temperature,
     w.humidity,
     w.apparent_temperature,
@@ -998,17 +1170,17 @@ ORDER BY
     e.reading_timestamp;
 ```
 
-This produces the integrated hourly dataset required for downstream feature engineering, anomaly detection, forecasting, and related modelling.
+This produces an integrated hourly dataset containing energy, weather, and public-holiday information for downstream analysis.
 
-Feature engineering and model implementation are handled by the corresponding ML/AI components rather than inside the data-engineering pipeline.
+Feature engineering, anomaly detection, and forecasting model implementation are handled by the corresponding ML/AI components rather than inside this data-engineering pipeline.
 
 ---
 
-## 21. Important Notes
+## 22. Important Notes
 
 - The current Docker database uses PostgreSQL 16.
 - The current implementation does not use TimescaleDB-specific functionality.
-- The database schema has not been modified for the 30-household expansion.
+- The 30-household expansion did not require structural database changes; a subsequent `is_public_holiday` boolean field was added to `energy_readings` for calendar enrichment.
 - SGSC household IDs are stored using their original numeric IDs.
 - Energy readings are stored at hourly resolution.
 - SGSC 30-minute kWh readings are aggregated to hourly kWh using `SUM`.
@@ -1016,9 +1188,14 @@ Feature engineering and model implementation are handled by the corresponding ML
 - Open-Meteo is requested using `Australia/Sydney`.
 - The Open-Meteo location is a common SGSC dataset-level reference point rather than an individual household location.
 - All 625,424 SGSC energy readings have corresponding Open-Meteo weather records.
+- NSW statewide public holidays are represented using `energy_readings.is_public_holiday`.
+- The current SGSC period contains 28 NSW statewide public-holiday dates represented in the energy dataset.
+- 20,160 SGSC hourly energy readings are marked as public-holiday readings.
+- Local and regional NSW holidays are not included.
+- Public-holiday enrichment is performed by `holidays.py`.
 - The selected 30-household dataset does not contain generation households because no generation households met the final reading-count and energy-quality selection criteria.
 - HomeC is not part of the active data pipeline.
 - Raw, intermediate, and processed datasets should not be committed to Git unless explicitly required.
 - The full multi-GB SGSC interval source file should not be committed to the repository.
 - `smart_energy.dump` is the reproducible populated database snapshot for the team.
-- The current database dump has been independently restored and verified with 30 households, 625,424 energy readings, and 630,120 weather readings.
+- The current database dump has been independently restored and verified with 30 households, 625,424 energy readings, 630,120 weather readings, 20,160 public-holiday readings, and 28 public-holiday dates.
