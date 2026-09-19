@@ -1,3 +1,4 @@
+from logging_utils import log_print
 import logging
 logger = logging.getLogger()
 # anomaly_detection/us14_api.py
@@ -57,9 +58,9 @@ def build_api_payload() -> pd.DataFrame:
         if_score        — raw IF score
         ae_score        — raw AE score
     """
-    logger.info("\n" + "="*60)
-    logger.info("US-14: BUILDING API PAYLOAD")
-    logger.info("="*60)
+    log_print("\n" + "="*60)
+    log_print("US-14: BUILDING API PAYLOAD")
+    log_print("="*60)
 
     # ── Load results ───────────────────────────────────────────────────────
     df_if = pd.read_csv(IF_RESULTS_CSV,
@@ -147,12 +148,12 @@ def build_api_payload() -> pd.DataFrame:
     # ── Summary ────────────────────────────────────────────────────────────
     total = len(df)
     anom  = df["is_anomaly"].sum()
-    logger.info(f"\n  Total readings: {total:,}")
-    logger.info(f"  Anomalies:      {anom:,} ({anom/total*100:.1f}%)")
-    logger.info(f"\n  Severity breakdown:")
-    logger.info(df["severity"].value_counts().to_string())
-    logger.info(f"\n  Confidence breakdown:")
-    logger.info(df["confidence"].value_counts().to_string())
+    log_print(f"\n  Total readings: {total:,}")
+    log_print(f"  Anomalies:      {anom:,} ({anom/total*100:.1f}%)")
+    log_print(f"\n  Severity breakdown:")
+    log_print(df["severity"].value_counts().to_string())
+    log_print(f"\n  Confidence breakdown:")
+    log_print(df["confidence"].value_counts().to_string())
 
     return df
 
@@ -170,7 +171,7 @@ def save_api_outputs(df: pd.DataFrame) -> None:
 
     # ── CSV (all readings) ─────────────────────────────────────────────────
     df.to_csv(API_CSV, index=False)
-    logger.info(f"\n  ✓ CSV (all readings): {API_CSV}")
+    log_print(f"\n  ✓ CSV (all readings): {API_CSV}")
 
     # ── JSON (anomalies only) ──────────────────────────────────────────────
     anomalies = df[df["is_anomaly"] == 1].copy()
@@ -209,15 +210,15 @@ def save_api_outputs(df: pd.DataFrame) -> None:
     with open(API_JSON, "w") as f:
         json.dump(payload, f, indent=2)
 
-    logger.info(f"  ✓ JSON (anomalies):   {API_JSON}")
-    logger.info(f"\n  JSON preview (first 2 anomalies):")
-    logger.info(json.dumps(payload["anomalies"][:2], indent=2))
+    log_print(f"  ✓ JSON (anomalies):   {API_JSON}")
+    log_print(f"\n  JSON preview (first 2 anomalies):")
+    log_print(json.dumps(payload["anomalies"][:2], indent=2))
 
 
 def verify_us14(df: pd.DataFrame) -> bool:
-    logger.info(f"\n{'='*60}")
-    logger.info("US-14 ACCEPTANCE CRITERIA")
-    logger.info("="*60)
+    log_print(f"\n{'='*60}")
+    log_print("US-14 ACCEPTANCE CRITERIA")
+    log_print("="*60)
     criteria = [
         ("household column",
          COL_HOUSEHOLD in df.columns),
@@ -239,16 +240,16 @@ def verify_us14(df: pd.DataFrame) -> bool:
     all_pass = True
     for name, passed in criteria:
         icon = "✅" if passed else "❌"
-        logger.info(f"  {icon}  {name}")
+        log_print(f"  {icon}  {name}")
         if not passed:
             all_pass = False
 
-    logger.info(f"\n  {'ALL PASSED ✅' if all_pass else 'SOME FAILED ❌'}")
-    logger.info(f"\n  Sample anomaly records:")
+    log_print(f"\n  {'ALL PASSED ✅' if all_pass else 'SOME FAILED ❌'}")
+    log_print(f"\n  Sample anomaly records:")
     sample_cols = [COL_HOUSEHOLD, "timestamp", "consumption",
                    "anomaly_score", "severity", "confidence"]
     sample_cols = [c for c in sample_cols if c in df.columns]
-    logger.info(df[df["is_anomaly"]==1][sample_cols]
+    log_print(df[df["is_anomaly"]==1][sample_cols]
           .head(3).to_string(index=False))
 
     return all_pass

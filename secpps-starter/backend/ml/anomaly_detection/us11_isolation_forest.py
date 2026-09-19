@@ -1,3 +1,4 @@
+from logging_utils import log_print
 import logging
 logger = logging.getLogger()
 # US-11: Isolation Forest using energy, temporal and weather/context features.
@@ -25,7 +26,7 @@ IF_FEATURES = [
     "change_1h", "change_24h", "abs_change_1h", "peak_ratio",
     # Calendar context
     "hour_sin", "hour_cos", "dow_sin", "dow_cos", "month_sin", "month_cos",
-    "is_peak", "is_weekend", "season",
+    "is_peak", "is_weekend", "is_public_holiday", "season",
     # Weather context
     "temperature", "humidity", "apparent_temperature", "pressure", "wind_speed",
     "cloud_cover", "precip_intensity", "dew_point", "precip_probability",
@@ -36,13 +37,13 @@ IF_FEATURES = [
 
 
 def train_isolation_forest(F_train):
-    logger.info("\n" + "=" * 70)
-    logger.info("US-11: ISOLATION FOREST")
-    logger.info("=" * 70)
+    log_print("\n" + "=" * 70)
+    log_print("US-11: ISOLATION FOREST")
+    log_print("=" * 70)
     available = [c for c in IF_FEATURES if c in F_train.columns]
     missing = [c for c in IF_FEATURES if c not in F_train.columns]
     if missing:
-        logger.info(f"Missing/skipped features: {missing}")
+        log_print(f"Missing/skipped features: {missing}")
     X = F_train[available].astype(float).replace([np.inf, -np.inf], np.nan)
     X = X.fillna(X.median())
 
@@ -57,10 +58,10 @@ def train_isolation_forest(F_train):
     model.fit(X_scaled)
     joblib.dump(model, IF_MODEL_PKL)
     joblib.dump(scaler, IF_SCALER_PKL)
-    logger.info(f"Training rows: {len(F_train):,}")
-    logger.info(f"Features used: {len(available)}")
-    logger.info(f"Features: {available}")
-    logger.info(f"Saved model: {IF_MODEL_PKL}")
+    log_print(f"Training rows: {len(F_train):,}")
+    log_print(f"Features used: {len(available)}")
+    log_print(f"Features: {available}")
+    log_print(f"Saved model: {IF_MODEL_PKL}")
     return {"model": model, "scaler": scaler, "feature_cols": available}
 
 
@@ -87,8 +88,8 @@ def run_if_pipeline(splits):
     results_val = predict_if_on_split(splits["val"], trained, "val")
     results_test = predict_if_on_split(splits["test"], trained, "test")
     results_test.to_csv(IF_RESULTS_CSV)
-    logger.info(f"Test anomalies: {results_test['is_anomaly'].sum():,} / {len(results_test):,}")
-    logger.info(f"Saved: {IF_RESULTS_CSV}")
+    log_print(f"Test anomalies: {results_test['is_anomaly'].sum():,} / {len(results_test):,}")
+    log_print(f"Saved: {IF_RESULTS_CSV}")
     plot_if_evidence(results_test)
     verify_us11(results_test)
     return {"trained": trained, "results_val": results_val, "results_test": results_test}
@@ -130,5 +131,5 @@ def verify_us11(results):
         ("results saved", os.path.exists(IF_RESULTS_CSV)),
     ]
     ok = all(v for _, v in checks)
-    logger.info(f"US-11 status: {'PASS' if ok else 'FAIL'}")
+    log_print(f"US-11 status: {'PASS' if ok else 'FAIL'}")
     return ok

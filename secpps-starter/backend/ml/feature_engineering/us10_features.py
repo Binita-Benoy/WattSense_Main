@@ -1,3 +1,4 @@
+from logging_utils import log_print
 import logging
 logger = logging.getLogger()
 # US-10: Energy + weather feature engineering for anomaly detection.
@@ -43,6 +44,16 @@ def add_cyclical_features(df):
     df["hour"] = hour
     df["day_of_week"] = dow
     df["is_weekend"] = (dow >= 5).astype(int)
+
+    if "is_public_holiday" in df.columns:
+        df["is_public_holiday"] = (
+            df["is_public_holiday"]
+            .fillna(0)
+            .astype(int)
+        )
+    else:
+        df["is_public_holiday"] = 0
+
     return df
 
 
@@ -126,15 +137,15 @@ def add_weather_features(df):
 
 
 def build_feature_matrix(df_all, save=True):
-    logger.info("\n" + "=" * 70)
-    logger.info("US-10: ENERGY + WEATHER FEATURE ENGINEERING")
-    logger.info("=" * 70)
+    log_print("\n" + "=" * 70)
+    log_print("US-10: ENERGY + WEATHER FEATURE ENGINEERING")
+    log_print("=" * 70)
 
     all_features = []
     for hh_id in sorted(df_all[COL_HOUSEHOLD].unique()):
-        logger.info(f"\nProcessing household {hh_id}...")
+        log_print(f"\nProcessing household {hh_id}...")
         df = df_all[df_all[COL_HOUSEHOLD] == hh_id].copy().sort_index()
-        logger.info(f"Rows: {len(df):,} | {df.index.min()} → {df.index.max()}")
+        log_print(f"Rows: {len(df):,} | {df.index.min()} → {df.index.max()}")
 
         df = add_lag_features(df)
         df = add_cyclical_features(df)
@@ -148,11 +159,15 @@ def build_feature_matrix(df_all, save=True):
         # source weather fields are missing; weather imputation handles short gaps.
         n_before = len(df)
         df = df.dropna(subset=["lag_168h", "rolling_30d_mean", "z_score"])
-        logger.info(f"After core dropna: {len(df):,} rows ({n_before - len(df)} dropped)")
+        log_print(f"After core dropna: {len(df):,} rows ({n_before - len(df)} dropped)")
         df[COL_HOUSEHOLD] = hh_id
         all_features.append(df)
 
     F = pd.concat(all_features, axis=0).sort_index()
+
+    if "is_public_holiday" in F.columns:
+        holiday_rows = int(F["is_public_holiday"].sum())
+        log_print(f"Public holiday rows in feature matrix: {holiday_rows:,}")
 
     # Final numeric cleanup. This avoids model failures caused by empty weather columns.
     numeric_cols = F.select_dtypes(include=[np.number]).columns
@@ -160,16 +175,16 @@ def build_feature_matrix(df_all, save=True):
     remaining = F[numeric_cols].isna().sum()
     remaining = remaining[remaining > 0]
     if not remaining.empty:
-        logger.info("Remaining numeric missing values after weather processing:")
-        logger.info(remaining.to_string())
+        log_print("Remaining numeric missing values after weather processing:")
+        log_print(remaining.to_string())
         F[numeric_cols] = F[numeric_cols].fillna(F[numeric_cols].median())
 
     if save:
         F.to_csv(FEATURE_CSV)
-        logger.info(f"Saved feature matrix: {FEATURE_CSV}")
+        log_print(f"Saved feature matrix: {FEATURE_CSV}")
 
-    logger.info(f"\nFeature matrix shape: {F.shape}")
-    logger.info(f"Total features excluding household_id: {len(F.columns) - 1}")
+    log_print(f"\nFeature matrix shape: {F.shape}")
+    log_print(f"Total features excluding household_id: {len(F.columns) - 1}")
     return F
 
 
@@ -177,17 +192,19 @@ def verify_us10(F):
     required = [
         "lag_1h", "lag_24h", "lag_48h", "lag_168h",
         "hour_sin", "hour_cos", "dow_sin", "dow_cos",
-        "rolling_7d_mean", "rolling_7d_std", "rolling_30d_mean", "rolling_30d_std",
+        "is_weekend", "is_public_holiday",
+        "rolling_7d_mean", "rolling_7d_std",
+        "rolling_30d_mean", "rolling_30d_std",
         "is_peak", "deviation_24h", "z_score",
         "temperature", "humidity", "apparent_temperature", "wind_speed",
-        "shortwave_radiation", "temperature_deviation_24h", "cooling_degree",
-        "heating_degree"
+        "shortwave_radiation", "temperature_deviation_24h",
+        "cooling_degree", "heating_degree"
     ]
-    logger.info("\nUS-10 ACCEPTANCE CRITERIA")
+    log_print("\nUS-10 ACCEPTANCE CRITERIA")
     passed = True
     for name in required:
         ok = name in F.columns
-        logger.info(f"  {'PASS' if ok else 'FAIL'}  {name}")
+        log_print(f"  {'PASS' if ok else 'FAIL'}  {name}")
         passed &= ok
-    logger.info(f"US-10 status: {'PASS' if passed else 'FAIL'}")
+    log_print(f"US-10 status: {'PASS' if passed else 'FAIL'}")
     return bool(passed)
