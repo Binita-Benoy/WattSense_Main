@@ -84,11 +84,20 @@ IF_N_ESTIMATORS  = 100
 IF_RANDOM_STATE  = 42
 
 # ── LSTM Autoencoder ──────────────────────────────────────────────────────────
-AE_SEQ_LEN       = 24
-AE_BATCH_SIZE    = 32
-AE_EPOCHS        = 50
-AE_THRESHOLD_PCT = 95
-AE_PATIENCE       = 5
+AE_SEQ_LEN              = 24
+# Laptop-friendly settings. These cap the number of sequences used by the AE
+# without changing the underlying 24-hour multivariate approach.
+AE_MAX_TRAIN_SEQUENCES = 100_000
+AE_MAX_VAL_SEQUENCES   = 20_000
+AE_MAX_TEST_SEQUENCES  = 30_000
+AE_BATCH_SIZE          = 16
+AE_EPOCHS              = 20
+AE_THRESHOLD_PCT       = 95
+AE_PATIENCE             = 3
+AE_LSTM_UNITS_1        = 32
+AE_LSTM_UNITS_2        = 16
+AE_PREDICT_BATCH_SIZE  = 256
+AE_RANDOM_STATE        = 42
 
 # ── Severity thresholds ───────────────────────────────────────────────────────
 SEVERITY_HIGH   = 0.80

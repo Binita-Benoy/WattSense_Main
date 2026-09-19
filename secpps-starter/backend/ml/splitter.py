@@ -1,3 +1,4 @@
+from logging_utils import log_print
 import logging
 logger = logging.getLogger()
 # anomaly_detection/splitter.py
@@ -85,14 +86,14 @@ def split_all_households(F: pd.DataFrame) -> dict:
             "test":  combined test DataFrame
             "info":  per-household split summary DataFrame
     """
-    logger.info("\n" + "="*60)
-    logger.info("CHRONOLOGICAL TRAIN / VAL / TEST SPLIT")
-    logger.info("="*60)
-    logger.info(f"  Ratios: Train={TRAIN_RATIO:.0%}  "
+    log_print("\n" + "="*60)
+    log_print("CHRONOLOGICAL TRAIN / VAL / TEST SPLIT")
+    log_print("="*60)
+    log_print(f"  Ratios: Train={TRAIN_RATIO:.0%}  "
           f"Val={VAL_RATIO:.0%}  "
           f"Test={TEST_RATIO:.0%}")
-    logger.info(f"  Strategy: chronological (time-ordered)")
-    logger.info(f"  Shuffled: NO ← critical for time series\n")
+    log_print(f"  Strategy: chronological (time-ordered)")
+    log_print(f"  Shuffled: NO ← critical for time series\n")
 
     households   = sorted(F[COL_HOUSEHOLD].unique())
     train_chunks = []
@@ -124,14 +125,14 @@ def split_all_households(F: pd.DataFrame) -> dict:
             "test_end":      str(test.index.max().date()),
         })
 
-        logger.info(f"  HH {hh_id}:")
-        logger.info(f"    TRAIN  {len(train):>6,} rows  "
+        log_print(f"  HH {hh_id}:")
+        log_print(f"    TRAIN  {len(train):>6,} rows  "
               f"{train.index.min().date()} → "
               f"{train.index.max().date()}")
-        logger.info(f"    VAL    {len(val):>6,} rows  "
+        log_print(f"    VAL    {len(val):>6,} rows  "
               f"{val.index.min().date()} → "
               f"{val.index.max().date()}")
-        logger.info(f"    TEST   {len(test):>6,} rows  "
+        log_print(f"    TEST   {len(test):>6,} rows  "
               f"{test.index.min().date()} → "
               f"{test.index.max().date()}")
 
@@ -141,14 +142,14 @@ def split_all_households(F: pd.DataFrame) -> dict:
     F_test  = pd.concat(test_chunks,  axis=0).sort_index()
     df_info = pd.DataFrame(info_rows)
 
-    logger.info(f"\n  Combined totals:")
-    logger.info(f"    TRAIN: {len(F_train):,} rows")
-    logger.info(f"    VAL:   {len(F_val):,} rows")
-    logger.info(f"    TEST:  {len(F_test):,} rows")
+    log_print(f"\n  Combined totals:")
+    log_print(f"    TRAIN: {len(F_train):,} rows")
+    log_print(f"    VAL:   {len(F_val):,} rows")
+    log_print(f"    TEST:  {len(F_test):,} rows")
 
     # Save split info
     df_info.to_csv(SPLIT_INFO_CSV, index=False)
-    logger.info(f"\n  ✓ Split info saved: {SPLIT_INFO_CSV}")
+    log_print(f"\n  ✓ Split info saved: {SPLIT_INFO_CSV}")
 
     # Plot
     plot_split_overview(F_train, F_val, F_test)
@@ -222,7 +223,7 @@ def plot_split_overview(F_train: pd.DataFrame,
 
     plt.tight_layout()
     plt.savefig(SPLIT_GRAPH, dpi=150, bbox_inches="tight")
-    logger.info(f"  ✓ Split plot saved: {SPLIT_GRAPH}")
+    log_print(f"  ✓ Split plot saved: {SPLIT_GRAPH}")
     plt.close()
 
 

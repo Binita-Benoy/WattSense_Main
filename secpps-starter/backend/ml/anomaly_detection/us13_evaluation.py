@@ -1,3 +1,4 @@
+from logging_utils import log_print
 import logging
 logger = logging.getLogger()
 # US-13: TEST-split injection evaluation for both anomaly detectors.
@@ -55,9 +56,9 @@ def _refresh_injected_features(df):
 
 
 def evaluate_on_injection(splits, if_trained=None, ae_model=None, ae_threshold=None):
-    logger.info("\n" + "=" * 70)
-    logger.info("US-13: INJECTION-BASED EVALUATION ON TEST SPLIT")
-    logger.info("=" * 70)
+    log_print("\n" + "=" * 70)
+    log_print("US-13: INJECTION-BASED EVALUATION ON TEST SPLIT")
+    log_print("=" * 70)
 
     from anomaly_detection.us11_isolation_forest import IF_FEATURES
     from anomaly_detection.us12_autoencoder import AE_FEATURES, make_sequences
@@ -131,14 +132,14 @@ def evaluate_on_injection(splits, if_trained=None, ae_model=None, ae_threshold=N
 
 
 def _print_aggregate(df):
-    logger.info("\nAGGREGATE TEST METRICS")
+    log_print("\nAGGREGATE TEST METRICS")
     for det in ["Isolation Forest", "LSTM Autoencoder"]:
         sub = df[df["detector"] == det]
         if sub.empty:
             continue
-        logger.info(det)
+        log_print(det)
         for m in ["precision", "recall", "f1", "auc_roc"]:
-            logger.info(f"  {m}: {sub[m].mean():.4f} ± {sub[m].std():.4f}")
+            log_print(f"  {m}: {sub[m].mean():.4f} ± {sub[m].std():.4f}")
 
 
 def plot_evaluation_chart(df):
@@ -174,5 +175,5 @@ def verify_us13(df_metrics):
         os.path.exists(EVAL_CSV)
     ]
     ok = all(checks)
-    logger.info(f"US-13 status: {'PASS' if ok else 'FAIL'}")
+    log_print(f"US-13 status: {'PASS' if ok else 'FAIL'}")
     return ok

@@ -1,3 +1,4 @@
+from logging_utils import log_print
 import logging
 logger = logging.getLogger()
 # Database loader for the WattSense anomaly-detection pipeline.
@@ -96,16 +97,16 @@ def load_all_households(verbose: bool = True) -> pd.DataFrame:
             merged[col] = pd.to_numeric(merged[col], errors="coerce")
 
     if verbose:
-        logger.info("ALL HOUSEHOLDS LOADED WITH WEATHER")
-        logger.info(f"Total rows: {len(merged):,}")
-        logger.info(f"Columns: {list(merged.columns)}")
+        log_print("ALL HOUSEHOLDS LOADED WITH WEATHER")
+        log_print(f"Total rows: {len(merged):,}")
+        log_print(f"Columns: {list(merged.columns)}")
         missing = merged[weather_cols].isna().mean().sort_values(ascending=False)
-        logger.info("Weather missingness (%):")
-        logger.info((missing * 100).round(2).to_string())
+        log_print("Weather missingness (%):")
+        log_print((missing * 100).round(2).to_string())
         summary = merged.groupby(COL_HOUSEHOLD)[COL_KWH].agg(
             count="count", mean="mean", max="max", min="min"
         ).round(4)
-        logger.info(summary.to_string())
+        log_print(summary.to_string())
 
     return merged
 
@@ -122,4 +123,4 @@ def load_household_meta() -> pd.DataFrame:
 
 
 if __name__ == "__main__":
-    logger.info(load_all_households().head())
+    log_print(load_all_households().head())
