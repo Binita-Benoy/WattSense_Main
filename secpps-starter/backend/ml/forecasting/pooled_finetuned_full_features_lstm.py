@@ -1,21 +1,8 @@
 """
-Combines the two ideas that existed SEPARATELY until now:
-  1. The full proposal feature vector (lag/cyclical/rolling/peak/season +
-     weather) from lstm_full_features.py
-  2. The pooled-then-fine-tuned training strategy from
-     pooled_weather_lstm_forecast.py / finetuned_lstm_forecast.py
-
-This is the "how the real system would actually work" version: train
-ONE base model across ALL households (using the full feature vector),
-then briefly fine-tune it for a SPECIFIC household before serving that
-household's forecast -- avoiding both per-household cold-start (full
-training from scratch) and pure-pooled genericness (one-size-fits-all).
-
-Same feature-handling rules during recursive forecasting as
-lstm_full_features.py: lag_1h recursive, lag_24h/48h/168h looked up from
-real known history, rolling/peak held constant, cyclical/season computed
-fresh from real calendar dates, weather uses real actual test-period
-values (backtesting-only caveat, same as every other weather script).
+Pooled + fine-tuned LSTM -- your proposal-aligned production model,
+now with the full 21-column feature vector (lag/cyclical/rolling/peak/
+season/weather/humidity/generation/controlled-load), matching
+lstm_full_features.py exactly.
 """
 import json
 import os
@@ -58,6 +45,41 @@ def discover_real_households(engine, min_hours: int = 2000, limit: int = None) -
         result = conn.execute(text(query), {"min_hours": min_hours})
         ids = [row[0] for row in result]
     return ids[:limit] if limit else ids
+
+
+def _build_next_row(next_kwh_scaled, ts, train_df, test_df, step, scalers, last_rolling_and_peak):
+    calendar = compute_calendar_features(ts)
+    lag_1h_scaled = next_kwh_scaled
+
+    def real_lag_scaled(hours_back, col):
+        target_time = ts - pd.Timedelta(hours=hours_back)
+        raw_val = train_df.loc[target_time, "kwh"] if target_time in train_df.index else train_df["kwh"].iloc[-1]
+        return scalers[col].transform([[raw_val]])[0, 0]
+
+    lag_24h_scaled = real_lag_scaled(24, "lag_24h")
+    lag_48h_scaled = real_lag_scaled(48, "lag_48h")
+    lag_168h_scaled = real_lag_scaled(168, "lag_168h")
+
+    temp_scaled = scalers["temperature"].transform([[test_df.iloc[step]["temperature"]]])[0, 0]
+    radiation_scaled = scalers["shortwave_radiation"].transform([[test_df.iloc[step]["shortwave_radiation"]]])[0, 0]
+    humidity_scaled = scalers["humidity"].transform([[test_df.iloc[step]["humidity"]]])[0, 0]
+    controlled_load_scaled = scalers["controlled_load_kwh"].transform([[test_df.iloc[step]["controlled_load_kwh"]]])[0, 0]
+    gross_gen_scaled = scalers["gross_generation_kwh"].transform([[test_df.iloc[step]["gross_generation_kwh"]]])[0, 0]
+    net_gen_scaled = scalers["net_generation_kwh"].transform([[test_df.iloc[step]["net_generation_kwh"]]])[0, 0]
+
+    return np.array([
+        next_kwh_scaled, lag_1h_scaled, lag_24h_scaled, lag_48h_scaled, lag_168h_scaled,
+        scalers["hour_sin"].transform([[calendar["hour_sin"]]])[0, 0],
+        scalers["hour_cos"].transform([[calendar["hour_cos"]]])[0, 0],
+        scalers["dow_sin"].transform([[calendar["dow_sin"]]])[0, 0],
+        scalers["dow_cos"].transform([[calendar["dow_cos"]]])[0, 0],
+        last_rolling_and_peak["rolling_7d_mean"], last_rolling_and_peak["rolling_7d_std"],
+        last_rolling_and_peak["rolling_30d_mean"], last_rolling_and_peak["rolling_30d_std"],
+        last_rolling_and_peak["is_peak"],
+        scalers["season"].transform([[calendar["season"]]])[0, 0],
+        temp_scaled, radiation_scaled, humidity_scaled,
+        controlled_load_scaled, gross_gen_scaled, net_gen_scaled,
+    ])
 
 
 def train_pooled_base_model(engine, household_ids: list, lookback: int = LOOKBACK, epochs: int = 50):
@@ -129,7 +151,6 @@ def fine_tune_and_forecast(engine, household_id: int, lookback: int = LOOKBACK) 
     model.fit(X_train, y_train, validation_data=(X_val, y_val),
               epochs=FINE_TUNE_EPOCHS, batch_size=32, callbacks=[early_stop], verbose=0)
 
-    # ---- Recursive 24h forecast -- identical logic to lstm_full_features.py ----
     kwh_scaler = scalers["kwh"]
     window = scaled_train[-lookback:, :].copy()
 
@@ -141,38 +162,11 @@ def fine_tune_and_forecast(engine, household_id: int, lookback: int = LOOKBACK) 
     scaled_predictions = []
     for step in range(HORIZON):
         ts = test_df.index[step]
-
         x_input = window.reshape((1, lookback, len(FEATURE_COLUMNS)))
         next_kwh_scaled = model.predict(x_input, verbose=0)[0, 0]
         scaled_predictions.append(next_kwh_scaled)
 
-        calendar = compute_calendar_features(ts)
-        lag_1h_scaled = next_kwh_scaled
-
-        def real_lag_scaled(hours_back, col):
-            target_time = ts - pd.Timedelta(hours=hours_back)
-            raw_val = train_df.loc[target_time, "kwh"] if target_time in train_df.index else train_df["kwh"].iloc[-1]
-            return scalers[col].transform([[raw_val]])[0, 0]
-
-        lag_24h_scaled = real_lag_scaled(24, "lag_24h")
-        lag_48h_scaled = real_lag_scaled(48, "lag_48h")
-        lag_168h_scaled = real_lag_scaled(168, "lag_168h")
-
-        temp_scaled = scalers["temperature"].transform([[test_df.iloc[step]["temperature"]]])[0, 0]
-        radiation_scaled = scalers["shortwave_radiation"].transform([[test_df.iloc[step]["shortwave_radiation"]]])[0, 0]
-
-        next_row = np.array([
-            next_kwh_scaled, lag_1h_scaled, lag_24h_scaled, lag_48h_scaled, lag_168h_scaled,
-            scalers["hour_sin"].transform([[calendar["hour_sin"]]])[0, 0],
-            scalers["hour_cos"].transform([[calendar["hour_cos"]]])[0, 0],
-            scalers["dow_sin"].transform([[calendar["dow_sin"]]])[0, 0],
-            scalers["dow_cos"].transform([[calendar["dow_cos"]]])[0, 0],
-            last_rolling_and_peak["rolling_7d_mean"], last_rolling_and_peak["rolling_7d_std"],
-            last_rolling_and_peak["rolling_30d_mean"], last_rolling_and_peak["rolling_30d_std"],
-            last_rolling_and_peak["is_peak"],
-            scalers["season"].transform([[calendar["season"]]])[0, 0],
-            temp_scaled, radiation_scaled,
-        ])
+        next_row = _build_next_row(next_kwh_scaled, ts, train_df, test_df, step, scalers, last_rolling_and_peak)
         window = np.vstack([window[1:], next_row])
 
     predicted_kwh = kwh_scaler.inverse_transform(np.array(scaled_predictions).reshape(-1, 1)).flatten()
@@ -185,7 +179,7 @@ def fine_tune_and_forecast(engine, household_id: int, lookback: int = LOOKBACK) 
 
     return {
         "household_id": household_id,
-        "model": "Pooled + fine-tuned LSTM (full feature vector)",
+        "model": "Pooled + fine-tuned LSTM (full feature vector incl. generation/controlled-load)",
         "was_in_training_pool": was_in_training_pool,
         "trained_on_households": metadata["trained_on_households"],
         "predictions": predictions,
