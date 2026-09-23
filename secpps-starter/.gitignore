@@ -1,0 +1,6 @@
+
+# Local run outputs and large data (kept on disk, not in git)
+/*log*.txt
+backend/live_forecast_all_horizons.json
+backend/ml/forecasting/feature_matrix.csv
+__pycache__/
