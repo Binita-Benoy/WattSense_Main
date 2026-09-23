@@ -1,0 +1,72 @@
+{
+  "household_id": 10042974,
+  "units": 32,
+  "n_folds": 5,
+  "fold_results": [
+    {
+      "fold": 1,
+      "train_hours": 5740,
+      "test_start": "2012-06-13T01:00:00",
+      "metrics": {
+        "mae": 0.4261,
+        "rmse": 0.583,
+        "mape": 50.81,
+        "mape_corrected": 50.81
+      }
+    },
+    {
+      "fold": 2,
+      "train_hours": 9504,
+      "test_start": "2012-11-16T21:00:00",
+      "metrics": {
+        "mae": 0.3466,
+        "rmse": 0.3719,
+        "mape": 324.03,
+        "mape_corrected": 324.03
+      }
+    },
+    {
+      "fold": 3,
+      "train_hours": 13268,
+      "test_start": "2013-04-22T17:00:00",
+      "metrics": {
+        "mae": 0.2549,
+        "rmse": 0.3556,
+        "mape": 71.94,
+        "mape_corrected": 71.94
+      }
+    },
+    {
+      "fold": 4,
+      "train_hours": 17032,
+      "test_start": "2013-09-26T13:00:00",
+      "metrics": {
+        "mae": 0.3292,
+        "rmse": 0.3924,
+        "mape": 184.6,
+        "mape_corrected": 184.6
+      }
+    },
+    {
+      "fold": 5,
+      "train_hours": 20796,
+      "test_start": "2014-03-02T09:00:00",
+      "metrics": {
+        "mae": 0.2045,
+        "rmse": 0.2326,
+        "mape": 123.24,
+        "mape_corrected": 123.24
+      }
+    }
+  ],
+  "avg_metrics": {
+    "mae": 0.3123,
+    "rmse": 0.3871,
+    "mape": 150.924
+  },
+  "std_metrics": {
+    "mae_std": 0.0766,
+    "rmse_std": 0.1127,
+    "mape_std": 98.1096
+  }
+}
