@@ -19,6 +19,10 @@ from sqlalchemy.orm import Session
 from database import get_db, engine
 from models import Household, EnergyReading
 
+from app_services.billing import predict_future_cost, StaticForecastProvider, TariffRates
+from app_services.recommendation import generate_recommendations
+from models import Tariff 
+
 app = FastAPI(title="SECPPS API", version="0.1.0")
 
 # Allow the Vite dev server to call this API from the browser.
@@ -120,3 +124,48 @@ def get_summary(household_id: int, db: Session = Depends(get_db)):
         "first_reading": first_ts.isoformat() if first_ts else None,
         "last_reading": last_ts.isoformat() if last_ts else None,
     }
+
+@app.get("/api/households/{household_id}/predicted-cost")
+def get_predicted_cost(household_id: int, horizon_days: int = 7, db: Session = Depends(get_db)):
+    """US-22: predicted cost for the next `horizon_days` (default 7)."""
+    tariff_row = db.query(Tariff).filter(Tariff.household_id == household_id).first()
+    if tariff_row is None:
+        raise HTTPException(status_code=404, detail="No tariff assigned to this household")
+ 
+    # TODO: swap StaticForecastProvider for Binita's real forecast module once it's ready.
+    forecast_provider = StaticForecastProvider(readings=[])
+ 
+    predicted = predict_future_cost(
+        tariff_row=tariff_row,
+        household_id=household_id,
+        forecast_provider=forecast_provider,
+        horizon_days=horizon_days,
+    )
+    return predicted
+
+
+@app.get("/api/households/{household_id}/recommendations")
+def get_recommendations(household_id: int, horizon_days: int = 7, db: Session = Depends(get_db)):
+    """US-23: rule-based recommendations built from the predicted cost."""
+    tariff_row = db.query(Tariff).filter(Tariff.household_id == household_id).first()
+    if tariff_row is None:
+        raise HTTPException(status_code=404, detail="No tariff assigned to this household")
+ 
+    forecast_provider = StaticForecastProvider(readings=[])  # TODO: real forecast provider
+ 
+    predicted = predict_future_cost(
+        tariff_row=tariff_row,
+        household_id=household_id,
+        forecast_provider=forecast_provider,
+        horizon_days=horizon_days,
+    )
+ 
+    tariff = TariffRates(peak_rate=tariff_row.peak_rate, offpeak_rate=tariff_row.offpeak_rate)
+ 
+    # Optional: prior completed cycle's actual cost, from current_cost.py, to enable
+    # the "rising cost trend" rule. Leave as None if you don't have that wired up yet.
+    prior_cycle_cost = None
+ 
+    recommendations = generate_recommendations(predicted, tariff, prior_cycle_cost)
+    return {"predicted_cost": predicted, "recommendations": recommendations}
+ 
