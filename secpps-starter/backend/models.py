@@ -69,3 +69,11 @@ class WeatherReading(Base):
     weather_icon = Column(String(100))
     weather_summary = Column(String(255))
     source = Column(String(50), nullable=False)
+
+class Tariff(Base):
+    __tablename__ = "tariffs"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    household_id = Column(BigInteger, ForeignKey("households.household_id"), nullable=False, index=True)
+    peak_rate = Column(Float, nullable=False)       # $/kWh
+    offpeak_rate = Column(Float, nullable=False)    # $/kWh
