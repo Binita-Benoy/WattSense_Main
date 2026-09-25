@@ -27,7 +27,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import List, Optional
 
-from billing import PredictedCost, TariffRates  # adjust import path once merged into app_services/
+from .billing import PredictedCost, TariffRates  
 
 
 class Severity(str, Enum):
