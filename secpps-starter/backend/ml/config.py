@@ -85,6 +85,18 @@ ENSEMBLE_BETA = 2.0
 ENSEMBLE_WEIGHT_STEP = 0.05
 ENSEMBLE_CALIBRATION_REPEATS = 3
 
+# Online/API inference. Raw incoming readings need historical context so the
+# same lag/rolling features used during training can be rebuilt. The backend
+# retrieves this context from PostgreSQL automatically.
+INFERENCE_HISTORY_DAYS = 35  # legacy request-scoped DB-context mode
+
+# US-14 unseen-household history API. The frontend normally sends the full
+# hourly energy history; recent_readings is bounded so the JSON response stays
+# practical even when the supplied history spans years.
+API_RECENT_HOURS = 7 * 24
+API_MAX_ANOMALIES_PER_HOUSEHOLD = 500
+API_REQUIRE_HOURLY_HISTORY = True
+
 # Synthetic anomaly evaluation. These values intentionally remain close to the
 # previous US-13 setup so before/after metrics are comparable.
 INJECTION_SPIKE_FRACTION = 0.010

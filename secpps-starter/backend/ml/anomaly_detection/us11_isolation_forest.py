@@ -67,7 +67,10 @@ def _normalise_scores(raw_scores: np.ndarray, low: float, high: float) -> np.nda
 
 def _prepare_prediction_matrix(F: pd.DataFrame, trained: dict) -> pd.DataFrame:
     cols = trained["feature_cols"]
-    X = F[cols].astype(float).replace([np.inf, -np.inf], np.nan)
+    # reindex creates any context columns that are absent at inference time
+    # (for example weather for a brand-new household). They are then filled
+    # using TRAIN-only medians saved with the model.
+    X = F.reindex(columns=cols).astype(float).replace([np.inf, -np.inf], np.nan)
     return X.fillna(trained["train_medians"])
 
 

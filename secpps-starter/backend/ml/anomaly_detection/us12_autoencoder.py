@@ -163,7 +163,10 @@ def _usable_features(F_train: pd.DataFrame) -> list[str]:
 
 
 def _prepare_numeric(df: pd.DataFrame, features: list[str], medians: pd.Series) -> pd.DataFrame:
-    values = df[features].astype(float).replace([np.inf, -np.inf], np.nan)
+    # Reindex instead of direct column selection so inference can accept a new
+    # household whose request has energy history but no weather fields. Missing
+    # trained features are filled with TRAIN-only medians.
+    values = df.reindex(columns=features).astype(float).replace([np.inf, -np.inf], np.nan)
     return values.fillna(medians)
 
 
