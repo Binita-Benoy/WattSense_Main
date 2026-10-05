@@ -1,64 +1,44 @@
-ANOMALY DETECTION OUTPUT FORMAT
-==========================================
+# Anomaly detection output format
 
-DESCRIPTION
-The anomaly detection module produces a structured output
-for every hour of consumption data evaluated. This output
-is consumed by:
-  - Alert engine (triggers push notifications)
-  - Forecasting pipeline (context for predictions)
-  - Dashboard (visualisation of anomaly events)
+The dashboard/API uses the **validation-calibrated IF + LSTM Autoencoder ensemble** as the final anomaly decision.
 
-OUTPUT SCHEMA
-─────────────
-Field:     timestamp
-Type:      datetime (ISO 8601) — "2013-08-15T18:00:00"
-Purpose:   Identifies which hour the anomaly occurred
+## Primary fields
 
-Field:     kwh
-Type:      float
-Purpose:   Raw consumption value at that timestamp
+| Field | Type | Meaning |
+|---|---|---|
+| `household_id` | integer | Household identifier |
+| `timestamp` | datetime | Hour being evaluated |
+| `consumption` | float | Consumption in kWh |
+| `anomaly_score` | float 0..1 | Final weighted ensemble score |
+| `is_anomaly` | 0/1 | Final ensemble alert decision |
+| `severity` | string | NORMAL / LOW / MEDIUM / HIGH |
+| `confidence` | string | Agreement confidence from the base detectors |
+| `detector` | string | `if_ae_ensemble` for final alerts |
+| `model_evidence` | string | `both`, `if_only`, `ae_only`, or `weighted_combination` |
 
-Field:     flag
-Type:      int (0 or 1)
-Values:    0 = normal consumption
-           1 = anomalous consumption
-Purpose:   Primary signal for alert engine
+## Explainability fields
 
-Field:     score
-Type:      float (0.0 – 1.0)
-Values:    Higher score = more anomalous
-           score > 0.7 = high confidence anomaly
-           score 0.4–0.7 = moderate confidence
-           score < 0.4 = marginal / low confidence
-Purpose:   Allows alert engine to filter by severity
+The API also retains:
 
-Field:     method
-Type:      str
-Values:    "isolation_forest" | "autoencoder"
-Purpose:   Identifies which detector produced the flag
-           (two detectors run in parallel)
+- `if_score`
+- `ae_score`
+- `if_flag`
+- `ae_flag`
+- `weight_if`
+- `weight_ae`
+- `decision_threshold`
 
-EXAMPLE OUTPUT
-──────────────
-timestamp            kwh    flag  score  method
-2013-08-15 18:00:00  4.82   1     0.91   isolation_forest
-2013-08-15 19:00:00  4.61   1     0.85   isolation_forest
-2013-08-16 02:00:00  2.94   1     0.73   isolation_forest
-2013-09-01 07:00:00  0.12   1     0.88   isolation_forest
+The final score is:
 
-API ENDPOINT
-──────────────────────────────────
-GET /api/anomalies/latest
-Returns: last 24 hours of anomaly flags
+```text
+ensemble_score = weight_if * IF_score + weight_ae * AE_score
+```
 
-GET /api/anomalies/range?start=YYYY-MM-DD&end=YYYY-MM-DD
-Returns: anomaly flags for specified date range
+for rows where both scores are available.  The weights and threshold are selected on validation data and then locked.
 
-ALERT TRIGGER RULE
-──────────────────
-Alert engine should trigger notification when:
-  flag == 1 AND score >= 0.7
+## Confidence
 
-Lower threshold (score >= 0.4) can be used for
-dashboard warning indicators without push notification.
+- `HIGH`: final ensemble alert and both base detectors independently flagged the point.
+- `MEDIUM`: final ensemble alert and one base detector independently flagged it.
+- `LOW`: weighted ensemble crossed its threshold even though neither standalone threshold was crossed.
+- `NORMAL`: no final ensemble alert.
