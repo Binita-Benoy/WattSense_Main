@@ -1,4 +1,4 @@
-from logging_utils import log_print
+from logging_utils import log_print, safe_savefig
 import logging
 logger = logging.getLogger()
 # anomaly_detection/splitter.py
@@ -222,9 +222,9 @@ def plot_split_overview(F_train: pd.DataFrame,
     ax.set_facecolor("white")
 
     plt.tight_layout()
-    plt.savefig(SPLIT_GRAPH, dpi=150, bbox_inches="tight")
+    safe_savefig(fig, SPLIT_GRAPH, dpi=150, bbox_inches="tight")
     log_print(f"  ✓ Split plot saved: {SPLIT_GRAPH}")
-    plt.close()
+    plt.close(fig)
 
 
 if __name__ == "__main__":
