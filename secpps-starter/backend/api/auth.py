@@ -18,6 +18,7 @@ from app_services.auth_service import (
 from database import Base, engine, get_db
 from models_auth import User
 from models import Household
+from models_profile import UserProfile
 
 Base.metadata.create_all(bind=engine)
 
@@ -99,6 +100,9 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
     db.add(new_user)
 
     try:
+        db.flush()  # gives new_user an id, and surfaces a clash before anything is saved
+        # Registering = a new user. (An account with no profile row counts as an existing user.)
+        db.add(UserProfile(user_id=new_user.id, user_type="new"))
         db.commit()
     except IntegrityError:
         db.rollback()

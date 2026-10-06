@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS energy_readings (
     gross_generation_kwh DOUBLE PRECISION,
     net_generation_kwh DOUBLE PRECISION,
     other_kwh DOUBLE PRECISION,
+    is_public_holiday BOOLEAN NOT NULL DEFAULT FALSE,
     source VARCHAR(50) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (household_id)

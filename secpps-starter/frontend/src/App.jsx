@@ -1,82 +1,63 @@
+// Root component. Nobody is asked what kind of user they are; the account decides:
+//   not logged in                         -> login / register
+//   account registered as a NEW user      -> NewUserFlow: upload the CSV, then the dashboard
+//   any other account (logging in)        -> ExistingDashboard: the dataset household
+//
+// "new" is recorded by the backend when an account is registered (api/auth.py). An account without
+// that mark, such as one created before this existed, counts as an existing user.
+//
+// HouseholdSelector.jsx, api.js and OnboardingPage.jsx are no longer used; the files are left untouched.
+
 import { useEffect, useState } from "react";
-import { api } from "./api";
-import HouseholdSelector from "./components/HouseholdSelector";
-import StatCard from "./components/StatCard";
-import EnergyChart from "./components/EnergyChart";
+import { useAuth } from "./context/AuthContext";
+import { dashboardApi } from "./api/dashboardApi";
+
+import AuthPage from "./components/AuthPage";
+import NewUserFlow from "./components/NewUserFlow";
+import ExistingDashboard from "./components/ExistingDashboard";
 
 export default function App() {
-  const [households, setHouseholds] = useState([]);
-  const [selectedId, setSelectedId] = useState(null);
-  const [summary, setSummary] = useState(null);
-  const [readings, setReadings] = useState([]);
-  const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { user, token, checkingSession } = useAuth();
+  const [profile, setProfile] = useState(null); // null = not loaded yet
+  const [profileError, setProfileError] = useState(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
-  // Load the household list once on mount
+  const loggedIn = Boolean(token && user);
+
   useEffect(() => {
-    api
-      .getHouseholds()
-      .then((data) => {
-        setHouseholds(data);
-        if (data.length > 0) setSelectedId(data[0].household_id);
+    if (!loggedIn) {
+      setProfile(null);
+      return;
+    }
+    let cancelled = false;
+    setProfile(null);
+    setProfileError(null);
+    dashboardApi
+      .getProfile(token)
+      .then((p) => {
+        if (!cancelled) setProfile(p);
       })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
-  }, []);
+      .catch((err) => {
+        if (!cancelled) setProfileError(err.message);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [token, loggedIn, reloadKey]);
 
-  // Load summary + readings whenever the selected household changes
-  useEffect(() => {
-    if (selectedId == null) return;
-    setError(null);
-    Promise.all([api.getSummary(selectedId), api.getReadings(selectedId)])
-      .then(([summaryData, readingsData]) => {
-        setSummary(summaryData);
-        setReadings(readingsData);
-      })
-      .catch((err) => setError(err.message));
-  }, [selectedId]);
+  if (checkingSession) return <div className="status">Loading...</div>;
+  if (!token || !user) return <AuthPage />;
 
-  return (
-    <div className="app">
-      <div className="header">
-        <h1>SECPPS Energy Dashboard</h1>
-        <p>Smart energy consumption prediction &amp; optimisation — live view</p>
+  if (profileError) {
+    return (
+      <div className="status error">
+        <p>{profileError}</p>
+        <button onClick={() => setReloadKey((k) => k + 1)}>Try again</button>
       </div>
+    );
+  }
+  if (profile === null) return <div className="status">Loading...</div>;
 
-      {loading && <div className="status">Loading households…</div>}
-      {error && <div className="status error">{error}</div>}
-
-      {!loading && !error && households.length > 0 && (
-        <>
-          <HouseholdSelector
-            households={households}
-            selectedId={selectedId}
-            onChange={setSelectedId}
-          />
-
-          <div className="stat-grid">
-            <StatCard label="Readings" value={summary?.reading_count} />
-            <StatCard
-              label="Avg kWh"
-              value={summary?.avg_kwh !== undefined ? `${summary.avg_kwh}` : undefined}
-            />
-            <StatCard
-              label="Peak kWh"
-              value={summary?.max_kwh !== undefined ? `${summary.max_kwh}` : undefined}
-            />
-            <StatCard
-              label="Total kWh"
-              value={summary?.total_kwh !== undefined ? `${summary.total_kwh}` : undefined}
-            />
-          </div>
-
-          {readings.length > 0 && <EnergyChart readings={readings} />}
-        </>
-      )}
-
-      {!loading && !error && households.length === 0 && (
-        <div className="status">No households found in the database yet.</div>
-      )}
-    </div>
-  );
+  if (profile.has_profile && profile.user_type === "new") return <NewUserFlow />;
+  return <ExistingDashboard />;
 }

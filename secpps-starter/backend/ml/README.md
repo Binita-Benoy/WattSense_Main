@@ -1,108 +1,60 @@
-# WattSense — Anomaly Detection Project
+# WattSense Anomaly Detection Pipeline
 
-The project is separated into two independently runnable stages:
+## Running the pipeline
 
-- `feature_engineering/` — US-10 feature creation
-- `anomaly_detection/` — US-11 to US-14 detection, evaluation and API output
-- root-level files — shared configuration, database loading, splitting and runners
+Run these commands from the `ml` folder:
 
-## Project structure
-
-```text
-anomaly/
-├── config.py
-├── db_loader.py
-├── data_utils.py
-├── splitter.py
-├── run_feature_engineering.py
-├── run_anomaly_detection.py
-│
-├── feature_engineering/
-│   ├── __init__.py
-│   └── us10_features.py
-│
-├── anomaly_detection/
-│   ├── __init__.py
-│   ├── us11_isolation_forest.py
-│   ├── us12_autoencoder.py
-│   ├── us13_evaluation.py
-│   └── us14_api.py
-│
-└── outputs/
-    ├── features/
-    ├── models/
-    ├── results/
-    ├── api/
-    └── graphs/
-```
-
-## How to run
-
-Run these commands from inside the `anomaly` project folder.
-
-### Stage 1 — Feature engineering
-
-```bash
-python run_feature_engineering.py
-```
-
-This loads the PostgreSQL data, creates the US-10 feature matrix and saves:
-
-`outputs/features/feature_matrix.csv`
-
-### Stage 2 — Anomaly detection
-
-Run this after feature engineering:
-
-```bash
-python run_anomaly_detection.py
-```
-
-This performs the chronological train/validation/test split and runs:
-
-- US-11 Isolation Forest
-- US-12 LSTM Autoencoder
-- US-13 injection-based evaluation
-- US-14 API output generation
-
-The anomaly stage reuses the saved feature matrix instead of rebuilding it.
-
-## Database
-
-Configure the PostgreSQL connection in `.env`. The default database name is
-`smart_energy`.
-
-Example restore commands:
-
-```bash
-createdb -U postgres smart_energy
-pg_restore -U postgres -d smart_energy data/smart_energy.dump
-```
-
-## Notes
-
-The previous `run_all.py` master runner has been removed. The older duplicate
-`prepare_anomaly_data.py` and `isolation_forest.py` implementations have also
-been removed because their functionality is superseded by US-10 and US-11.
-
-## Updated anomaly pipeline
-
-### Weather features
-US-10 now joins `weather_readings` to `energy_readings` by `household_id` and `reading_timestamp`. It uses temperature, apparent temperature, humidity, pressure, wind speed, cloud cover, precipitation, dew point, precipitation probability and shortwave radiation, plus derived weather-demand features such as temperature deviation, heating/cooling degree indicators and 24-hour weather baselines.
-
-### Anomaly detection features
-US-11 Isolation Forest now uses a broader set of energy, temporal, calendar and weather features. US-12 uses a selected multivariate subset in the LSTM autoencoder, so the sequence is no longer just `24 x 1` kWh; it is `24 x N` where N is the number of available AE features.
-
-### Logging
-The two main runners no longer show the long pipeline output in the terminal. Output from Python `print()` statements and TensorFlow is captured into timestamped files under:
-
-`outputs/results/logs/`
-
-Run:
-
-```text
+```powershell
 python run_feature_engineering.py
 python run_anomaly_detection.py
 ```
 
-Check the newest `.log` file under `outputs/results/logs/` for the complete run.
+## Terminal output + log file
+
+Pipeline messages are sent to **both**:
+
+1. the terminal, using `print()` through `log_print()`;
+2. a timestamped log file under:
+
+```text
+outputs/results/logs/
+```
+
+For example:
+
+```text
+outputs/results/logs/anomaly_detection_20260917_001500.log
+```
+
+The same message is therefore visible while the program is running and preserved for later review.
+
+## Laptop-friendly LSTM Autoencoder
+
+US-12 remains a multivariate 24-hour LSTM autoencoder and keeps the selected energy, temporal and weather features. The workload is reduced using configurable sequence caps and a smaller LSTM:
+
+```text
+Maximum training sequences : 100,000
+Maximum validation sequences: 20,000
+Maximum test sequences      : 30,000
+Batch size                  : 16
+Maximum epochs              : 20
+Early stopping patience     : 3
+LSTM units                  : 32 -> 16 -> 16 -> 32
+```
+
+The sequence caps are deterministic and retain representation from all configured households. They can be changed in `config.py` without changing the rest of the pipeline.
+
+### US-12 training output
+
+Each epoch is explicitly printed and logged, for example:
+
+```text
+Epoch 01/20 | loss=0.012345 | val_loss=0.010876
+Epoch 02/20 | loss=0.009876 | val_loss=0.009321
+```
+
+This avoids the large memory cost of materialising the previous ~432k training sequences while still training the same type of multivariate LSTM autoencoder.
+
+## Important TensorFlow note
+
+On native Windows, recent TensorFlow versions do not provide the normal CUDA GPU path. The autoencoder can still train using the CPU. The reduced US-12 configuration is intended to make this practical on a laptop.

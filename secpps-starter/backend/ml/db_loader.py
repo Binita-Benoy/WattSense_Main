@@ -1,3 +1,4 @@
+from logging_utils import log_print
 import logging
 logger = logging.getLogger()
 # Database loader for the WattSense anomaly-detection pipeline.
@@ -34,15 +35,21 @@ def _hh_sql():
 def load_energy_readings() -> pd.DataFrame:
     engine = get_engine()
     query = f"""
-        SELECT household_id, reading_timestamp, consumption_kwh,
-               controlled_load_kwh, gross_generation_kwh,
-               net_generation_kwh, other_kwh, source
-        FROM energy_readings
-        WHERE household_id IN ({_hh_sql()})
-        ORDER BY household_id, reading_timestamp
+    SELECT household_id, reading_timestamp, consumption_kwh,
+           controlled_load_kwh, gross_generation_kwh,
+           net_generation_kwh, other_kwh, source,
+           is_public_holiday
+    FROM energy_readings
+    WHERE household_id IN ({_hh_sql()})
+    ORDER BY household_id, reading_timestamp
     """
     df = pd.read_sql(query, engine, parse_dates=[DB_TIMESTAMP])
     df = df.rename(columns={DB_TIMESTAMP: COL_TIMESTAMP, DB_KWH: COL_KWH})
+    df["is_public_holiday"] = (
+        df["is_public_holiday"]
+        .fillna(False)
+        .astype(int)
+        )
     df = df.set_index(COL_TIMESTAMP)
     df.index.name = COL_TIMESTAMP
     return df
@@ -96,16 +103,16 @@ def load_all_households(verbose: bool = True) -> pd.DataFrame:
             merged[col] = pd.to_numeric(merged[col], errors="coerce")
 
     if verbose:
-        logger.info("ALL HOUSEHOLDS LOADED WITH WEATHER")
-        logger.info(f"Total rows: {len(merged):,}")
-        logger.info(f"Columns: {list(merged.columns)}")
+        log_print("ALL HOUSEHOLDS LOADED WITH WEATHER")
+        log_print(f"Total rows: {len(merged):,}")
+        log_print(f"Columns: {list(merged.columns)}")
         missing = merged[weather_cols].isna().mean().sort_values(ascending=False)
-        logger.info("Weather missingness (%):")
-        logger.info((missing * 100).round(2).to_string())
+        log_print("Weather missingness (%):")
+        log_print((missing * 100).round(2).to_string())
         summary = merged.groupby(COL_HOUSEHOLD)[COL_KWH].agg(
             count="count", mean="mean", max="max", min="min"
         ).round(4)
-        logger.info(summary.to_string())
+        log_print(summary.to_string())
 
     return merged
 
@@ -122,4 +129,4 @@ def load_household_meta() -> pd.DataFrame:
 
 
 if __name__ == "__main__":
-    logger.info(load_all_households().head())
+    log_print(load_all_households().head())
