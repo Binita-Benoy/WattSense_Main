@@ -382,3 +382,19 @@ body {
 .anomaly-check-header button:disabled { opacity: 0.5; cursor: not-allowed; }
 .anomaly-clean { color: #4ade80; font-size: 14px; }
 /* <<< END ADDED */
+
+/* >>> ADDED: anomaly check screens */
+.anomaly-headline { font-size: 15px; margin: 4px 0 6px; color: #e2e8f0; }
+.anomaly-headline strong { color: #f59e0b; font-size: 18px; }
+.anomaly-breakdown { color: #8993a4; font-size: 13px; }
+.anomaly-footnote { margin-top: 14px; }
+.anomaly-chart { margin: 16px 0; }
+.anomaly-chart h3, .anomaly-list-block h3 { margin: 0 0 8px; font-size: 14px; color: #e2e8f0; }
+.anomaly-legend { display: flex; gap: 16px; font-size: 12px; color: #8993a4; margin-top: 6px; }
+.anomaly-legend i { display: inline-block; width: 14px; height: 3px; margin-right: 6px; vertical-align: middle; border-radius: 2px; }
+.anomaly-legend i.dot { width: 9px; height: 9px; border-radius: 50%; }
+.anomaly-tooltip { background: #141922; border: 1px solid #232a35; border-radius: 6px; padding: 8px 10px; font-family: "JetBrains Mono", monospace; font-size: 12px; color: #e2e8f0; }
+.anomaly-list-block { margin-top: 12px; }
+.anomaly-evidence { color: #8993a4; }
+.anomaly-more { margin-top: 8px; }
+/* <<< END ADDED */

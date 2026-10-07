@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import StatCard from "./StatCard";
 import ForecastInfo from "./ForecastInfo";
 import NewUserForecastChart from "./NewUserForecastChart";
-import AnomalyPlaceholder from "./AnomalyPlaceholder";
+import AnomalyCheck from "./AnomalyCheck";
 import ReportButtons from "./ReportButtons";
 import Warnings from "./Warnings";
 
@@ -63,7 +63,7 @@ export default function NewUserDashboard({ data, token }) {
         </div>
       )}
 
-      <AnomalyPlaceholder />
+      <AnomalyCheck token={token} />
       <ReportButtons token={token} source="upload" />
     </>
   );

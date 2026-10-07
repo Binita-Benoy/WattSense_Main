@@ -19,6 +19,7 @@ from database import Base, engine, get_db
 from models_auth import User
 from models import Household
 from models_profile import UserProfile
+from app_services.upload_household import UPLOAD_HOUSEHOLD_BASE
 
 Base.metadata.create_all(bind=engine)
 
@@ -82,6 +83,7 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
     next_household = (
         db.query(Household.household_id)
         .filter(~Household.household_id.in_(claimed_ids))
+        .filter(Household.household_id < UPLOAD_HOUSEHOLD_BASE)  # uploaded households belong to the person who uploaded them
         .order_by(Household.household_id)
         .first()
     )

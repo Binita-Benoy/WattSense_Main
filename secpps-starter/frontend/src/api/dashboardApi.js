@@ -79,7 +79,8 @@ export const dashboardApi = {
     return authedJson(`/api/my-household/readings?${params.toString()}`, token);
   },
 
-  getMyAnomalies: (token) => authedJson("/api/my-household/anomalies", token),
+  getMyAnomalies: (token, { refresh } = {}) =>
+    authedJson(`/api/my-household/anomalies${refresh ? "?refresh=true" : ""}`, token),
 
   // asOf: the forecast continues from the last reading at or before this time
   getMyForecast: (token, horizon = "24h", asOf) =>
