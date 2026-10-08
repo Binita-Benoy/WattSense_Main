@@ -4,3 +4,7 @@
 backend/live_forecast_all_horizons.json
 backend/ml/forecasting/feature_matrix.csv
 __pycache__/
+docker-compose.override.yml
+
+backend/ml/forecasting/cnn_bidirectional/saved_models/
+backend/ml/forecasting/cnn_bidirectional/live_forecast_*.json
