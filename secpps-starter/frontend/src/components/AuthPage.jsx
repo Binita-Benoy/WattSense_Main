@@ -10,8 +10,12 @@ export default function AuthPage() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-brand">
+          {/* >>> CHANGED (branding): now reads "WattSense ⚡". Original lines were:
+              <div className="auth-logo">⚡</div>
+              <span>SECPPS</span> */}
+          <span>WattSense</span>
           <div className="auth-logo">⚡</div>
-          <span>SECPPS</span>
+          {/* <<< END CHANGED */}
         </div>
 
         {mode === "login" ? (

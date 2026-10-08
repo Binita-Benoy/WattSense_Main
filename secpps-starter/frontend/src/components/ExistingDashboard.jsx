@@ -7,6 +7,9 @@ import EnergyChart from "./EnergyChart";
 import HouseholdInfo from "./HouseholdInfo";
 import DateRangeSelector, { shiftDate } from "./DateRangeSelector";
 import AnomalyCheck from "./AnomalyCheck";
+// >>> ADDED: live meter demo
+import { useLiveMeter, LiveControls, recalcHourly } from "./LiveDemo";
+// <<< END ADDED
 import ForecastChart from "./ForecastChart";
 import ForecastInfo from "./ForecastInfo";
 import ReportButtons from "./ReportButtons";
@@ -30,6 +33,22 @@ export default function ExistingDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [reloadKey, setReloadKey] = useState(0);
+
+  // >>> ADDED: live meter demo. Extra readings (one per 30 s) are appended to `readings`, so the existing graphs,
+  // stat cards and forecast all update. `readings` itself (the real API data) is left untouched.
+  const baseSeries = useMemo(
+    () => readings.map((r) => ({ ts: r.reading_timestamp, kwh: r.consumption_kwh ?? 0 })),
+    [readings]
+  );
+  const meter = useLiveMeter(baseSeries);
+  const liveReadings = useMemo(
+    () =>
+      meter.live.length
+        ? [...readings, ...meter.live.map((p) => ({ reading_timestamp: p.ts, consumption_kwh: p.kwh }))]
+        : readings,
+    [readings, meter.live]
+  );
+  // <<< END ADDED
 
   useEffect(() => {
     let cancelled = false;
@@ -82,12 +101,14 @@ export default function ExistingDashboard() {
     };
   }, [token, dateRange?.startDate, dateRange?.endDate, reloadKey]);
 
+  // >>> CHANGED: stats use liveReadings (real readings + demo readings). Before: readings
   const stats = useMemo(() => {
-    if (readings.length === 0) return null;
-    const values = readings.map((r) => r.consumption_kwh ?? 0);
+    if (liveReadings.length === 0) return null;
+    const values = liveReadings.map((r) => r.consumption_kwh ?? 0);
     const total = values.reduce((a, b) => a + b, 0);
     return { count: values.length, avg: total / values.length, peak: Math.max(...values), total };
-  }, [readings]);
+  }, [liveReadings]);
+  // <<< END CHANGED
 
   // --- forecast (mock for now; see api/forecast.py) -------------------------
   const [horizon, setHorizon] = useState("24h");
@@ -110,6 +131,17 @@ export default function ExistingDashboard() {
       cancelled = true;
     };
   }, [token, horizon, dateRange?.endDate, readings.length]);
+
+  // >>> ADDED: once live readings exist, the forecast is recalculated from them (same length as the real forecast)
+  const shownForecast = useMemo(() => {
+    if (!forecast) return null;
+    if (!meter.live.length) return forecast.predictions;
+    return recalcHourly(meter.series, forecast.predictions.length).map((p) => ({
+      timestamp: p.ts,
+      predicted_kwh: p.kwh,
+    }));
+  }, [forecast, meter.live.length, meter.series]);
+  // <<< END ADDED
 
   return (
     <div className="app">
@@ -152,11 +184,19 @@ export default function ExistingDashboard() {
             </div>
           )}
 
-          <EnergyChart readings={readings} />
+          {/* >>> ADDED: live meter controls (sit right above the first graph) */}
+          <LiveControls meter={meter} />
+          {/* <<< END ADDED */}
+
+          {/* >>> CHANGED: graph shows liveReadings. Before: readings={readings} */}
+          <EnergyChart readings={liveReadings} />
+          {/* <<< END CHANGED */}
 
           <ForecastInfo horizon={horizon} onHorizonChange={setHorizon} model={forecast?.model} />
           {forecastError && <div className="status error">{forecastError}</div>}
-          {forecast && <ForecastChart readings={readings} forecast={forecast.predictions} />}
+          {/* >>> CHANGED: uses liveReadings / shownForecast. Before: readings={readings} forecast={forecast.predictions} */}
+          {forecast && <ForecastChart readings={liveReadings} forecast={shownForecast} />}
+          {/* <<< END CHANGED */}
 
           <AnomalyCheck token={token} />
 

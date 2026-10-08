@@ -6,7 +6,13 @@ export default function AppHeader({ subtitle, actions = [] }) {
   return (
     <div className="header">
       <div>
-        <h1>SECPPS Energy Dashboard</h1>
+        {/* >>> CHANGED (UI polish): small brand mark in front of the title (same bolt as the login card) */}
+        <h1>
+          {/* CHANGED (branding): was "SECPPS Energy Dashboard" with the bolt in front */}
+          WattSense Energy Dashboard
+          <span className="brand-mark" aria-hidden="true">⚡</span>
+        </h1>
+        {/* <<< END CHANGED */}
         <p>{subtitle}</p>
       </div>
       <div className="header-right">
