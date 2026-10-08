@@ -1,9 +1,0 @@
-{
-  "household_id": 10042974,
-  "metrics": {
-    "mae": 0.1931,
-    "rmse": 0.2205,
-    "mape": 121.46,
-    "mape_corrected": 121.46
-  }
-}
