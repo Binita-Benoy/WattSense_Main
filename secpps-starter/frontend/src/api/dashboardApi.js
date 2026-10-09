@@ -70,7 +70,10 @@ export const dashboardApi = {
 
   // --- existing users: dataset household -----------------------------------
   getMySummary: (token) => authedJson("/api/my-household/summary", token),
-
+ // >>> ADDED: start (or reuse) the real forecast for this household; read it with getNewUserForecast
+  startMyHouseholdForecast: (token, force = false) =>
+    authedJson(`/api/my-household/forecast/run${force ? "?force=true" : ""}`, token, { method: "POST" }),
+  // <<< END ADDED
   getMyReadings: (token, { start, end, limit = 2000 } = {}) => {
     const params = new URLSearchParams();
     if (start) params.append("start", start);

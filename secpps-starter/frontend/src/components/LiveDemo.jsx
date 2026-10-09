@@ -52,6 +52,23 @@ export function toDaily(hourly, days) {
   return out;
 }
 
+/** Saved horizons -> horizons recalculated from the series once live readings exist (24h hourly, 7day / 1month daily). */
+export function liveHorizons(saved, series, hasLive) {
+  if (!hasLive) return saved;
+  const out = { ...saved };
+  const redo = (key, make) => {
+    const old = saved[key];
+    if (!old || old.error) return;
+    const predictions = make();
+    if (!predictions.length) return;
+    out[key] = { ...old, predictions, total_kwh: predictions.reduce((s, p) => s + p.predicted_kwh, 0) };
+  };
+  redo("24h", () => recalcHourly(series, 24).map((p) => ({ timestamp: p.ts, predicted_kwh: p.kwh })));
+  redo("7day", () => toDaily(recalcHourly(series, 7 * 24 + 24), 7));
+  redo("1month", () => toDaily(recalcHourly(series, 30 * 24 + 24), 30));
+  return out;
+}
+
 /**
  * The live meter. `base` = [{ ts, kwh }] the dashboard already has.
  * Returns the extra readings plus the controls' state. Changing `base` (new date range) clears the demo.

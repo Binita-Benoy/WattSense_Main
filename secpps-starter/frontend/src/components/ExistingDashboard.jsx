@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { dashboardApi } from "../api/dashboardApi";
 import AppHeader from "./AppHeader";
@@ -7,14 +7,22 @@ import EnergyChart from "./EnergyChart";
 import HouseholdInfo from "./HouseholdInfo";
 import DateRangeSelector, { shiftDate } from "./DateRangeSelector";
 import AnomalyCheck from "./AnomalyCheck";
-// >>> ADDED: live meter demo
-import { useLiveMeter, LiveControls, recalcHourly } from "./LiveDemo";
+// >>> ADDED: live meter demo + the real forecast (same chart / progress screen the new-user dashboard uses)
+import { useLiveMeter, LiveControls, recalcHourly, liveHorizons } from "./LiveDemo";
+import ForecastProgress from "./ForecastProgress";
+import NewUserForecastChart from "./NewUserForecastChart";
 // <<< END ADDED
 import ForecastChart from "./ForecastChart";
 import ForecastInfo from "./ForecastInfo";
 import ReportButtons from "./ReportButtons";
 
 const READINGS_LIMIT = 20000; // the most the API returns in one request
+
+// >>> ADDED: false = the forecast comes from Binita's CNN-LSTM pipeline (POST /api/my-household/forecast/run).
+// true = the old mock forecast (GET /api/my-household/forecast), exactly as before.
+const USE_MOCK_FORECAST = false;
+const kwhText = (value, digits) => (value == null ? "n/a" : `${Number(value).toFixed(digits)} kWh`);
+// <<< END ADDED
 
 /**
  * Dashboard for "existing users": any account that was not registered as a new user, shown its dataset household.
@@ -110,13 +118,15 @@ export default function ExistingDashboard() {
   }, [liveReadings]);
   // <<< END CHANGED
 
-  // --- forecast (mock for now; see api/forecast.py) -------------------------
+  // --- forecast (OLD MOCK: only used when USE_MOCK_FORECAST is true) --------
   const [horizon, setHorizon] = useState("24h");
   const [forecast, setForecast] = useState(null);
   const [forecastError, setForecastError] = useState(null);
 
   useEffect(() => {
-    if (!dateRange || readings.length === 0) return undefined;
+    // >>> CHANGED: the mock is skipped unless USE_MOCK_FORECAST is true. Before: no USE_MOCK_FORECAST check.
+    if (!USE_MOCK_FORECAST || !dateRange || readings.length === 0) return undefined;
+    // <<< END CHANGED
     let cancelled = false;
     setForecastError(null);
     dashboardApi
@@ -132,7 +142,7 @@ export default function ExistingDashboard() {
     };
   }, [token, horizon, dateRange?.endDate, readings.length]);
 
-  // >>> ADDED: once live readings exist, the forecast is recalculated from them (same length as the real forecast)
+  // >>> ADDED: once live readings exist, the (mock) forecast is recalculated from them
   const shownForecast = useMemo(() => {
     if (!forecast) return null;
     if (!meter.live.length) return forecast.predictions;
@@ -141,6 +151,75 @@ export default function ExistingDashboard() {
       predicted_kwh: p.kwh,
     }));
   }, [forecast, meter.live.length, meter.series]);
+  // <<< END ADDED
+
+  // >>> ADDED: the REAL forecast. The backend builds it once per household (Binita's pipeline, 1 to 4 minutes),
+  // saves it, and this page reads it from /api/forecast/new-user, the same endpoint the new-user dashboard uses.
+  const [job, setJob] = useState(null);
+  const [jobError, setJobError] = useState(null);
+
+  const refreshJob = useCallback(async () => {
+    try {
+      setJob(await dashboardApi.getNewUserForecast(token));
+    } catch (err) {
+      setJobError(err.message);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    if (USE_MOCK_FORECAST) return undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        let j = await dashboardApi.getNewUserForecast(token);
+        if (cancelled) return;
+        if (j.status === "none") {
+          await dashboardApi.startMyHouseholdForecast(token); // first visit: build it
+          j = await dashboardApi.getNewUserForecast(token);
+        }
+        if (!cancelled) setJob(j);
+      } catch (err) {
+        if (!cancelled) setJobError(err.message);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [token, reloadKey]);
+
+  useEffect(() => {
+    if (!job || (job.status !== "queued" && job.status !== "running")) return undefined;
+    const id = setInterval(refreshJob, 3000);
+    return () => clearInterval(id);
+  }, [job?.status, refreshJob]);
+
+  const retryForecast = async () => {
+    setJobError(null);
+    try {
+      await dashboardApi.startMyHouseholdForecast(token, true);
+      await refreshJob();
+    } catch (err) {
+      setJobError(err.message);
+    }
+  };
+
+  const jobDone = job && job.status === "done" && job.result;
+  const savedHorizons = useMemo(() => (jobDone ? job.result.horizons || {} : {}), [jobDone, job]);
+  // the demo continues from the end of the household's data, so it only changes the forecast when the chart is at the latest date
+  const atLatest = !!(summary && dateRange && dateRange.endDate === summary.last_reading.slice(0, 10));
+  const demoOn = atLatest && meter.live.length > 0;
+  const horizons = useMemo(
+    () => liveHorizons(savedHorizons, meter.series, demoOn),
+    [savedHorizons, meter.series, demoOn]
+  );
+  const forecastHistory = useMemo(() => {
+    if (!jobDone) return [];
+    return demoOn
+      ? [...job.history, ...meter.live.map((p) => ({ timestamp: p.ts, kwh: p.kwh }))]
+      : job.history;
+  }, [jobDone, job, demoOn, meter.live]);
+  const current = horizons[horizon];
+  const modelText = current && !current.error ? `${current.method} (fine-tuned on this household's data)` : null;
   // <<< END ADDED
 
   return (
@@ -184,18 +263,71 @@ export default function ExistingDashboard() {
             </div>
           )}
 
-          {/* >>> ADDED: live meter controls (sit right above the first graph) */}
-          <LiveControls meter={meter} />
+          {/* >>> ADDED: live meter controls (sit right above the first graph). Only at the latest date, where the data ends. */}
+          {atLatest ? (
+            <LiveControls meter={meter} />
+          ) : (
+            <div className="household-info">
+              Live meter demo: set the end date to the latest date ({summary.last_reading.slice(0, 10)}) to use it.
+            </div>
+          )}
           {/* <<< END ADDED */}
 
           {/* >>> CHANGED: graph shows liveReadings. Before: readings={readings} */}
           <EnergyChart readings={liveReadings} />
           {/* <<< END CHANGED */}
 
-          <ForecastInfo horizon={horizon} onHorizonChange={setHorizon} model={forecast?.model} />
-          {forecastError && <div className="status error">{forecastError}</div>}
-          {/* >>> CHANGED: uses liveReadings / shownForecast. Before: readings={readings} forecast={forecast.predictions} */}
-          {forecast && <ForecastChart readings={liveReadings} forecast={shownForecast} />}
+          {/* >>> CHANGED: forecast section. USE_MOCK_FORECAST = true gives the old block below; false gives the real forecast. */}
+          {USE_MOCK_FORECAST ? (
+            <>
+              <ForecastInfo horizon={horizon} onHorizonChange={setHorizon} model={forecast?.model} />
+              {forecastError && <div className="status error">{forecastError}</div>}
+              {forecast && <ForecastChart readings={liveReadings} forecast={shownForecast} />}
+            </>
+          ) : (
+            <>
+              {jobError && (
+                <div className="status error">
+                  <p>{jobError}</p>
+                  <button onClick={retryForecast}>Try again</button>
+                </div>
+              )}
+              {!jobError && !job && <div className="status">Preparing your forecast…</div>}
+              {job && (job.status === "queued" || job.status === "running") && <ForecastProgress job={job} />}
+              {job && job.status === "failed" && (
+                <div className="status error">
+                  <p>{job.error || "The forecast failed."}</p>
+                  <button onClick={retryForecast}>Try again</button>
+                </div>
+              )}
+              {jobDone && (
+                <>
+                  <div className="household-info">
+                    Forecast for <strong>{(job.result.location && job.result.location.resolved_name) || job.location}</strong>
+                    {" "}· built from the last {Math.round(job.history.length / 24)} days of this household's data
+                    (weather for an assumed location, as the dataset has none)
+                  </div>
+                  <div className="stat-grid">
+                    <StatCard label="Next 24 hours" value={kwhText(horizons["24h"]?.total_kwh, 1)} />
+                    <StatCard label="Next 7 days" value={kwhText(horizons["7day"]?.total_kwh, 1)} />
+                    <StatCard label="Next 30 days" value={kwhText(horizons["1month"]?.total_kwh, 1)} />
+                  </div>
+                  <ForecastInfo horizon={horizon} onHorizonChange={setHorizon} model={modelText} />
+                  <NewUserForecastChart history={forecastHistory} horizon={horizon} horizonData={current} />
+                  {job.result.limitations && job.result.limitations.length > 0 && (
+                    <div className="chart-panel">
+                      <h2>About this forecast</h2>
+                      <ul className="limitations">
+                        {job.result.limitations.map((text) => (
+                          <li key={text}>{text}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </>
+              )}
+            </>
+          )}
           {/* <<< END CHANGED */}
 
           <AnomalyCheck token={token} />
