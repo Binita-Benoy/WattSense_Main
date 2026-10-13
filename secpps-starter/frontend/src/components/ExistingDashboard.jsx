@@ -10,7 +10,6 @@ import AnomalyCheck from "./AnomalyCheck";
 import ForecastChart from "./ForecastChart";
 import ForecastInfo from "./ForecastInfo";
 import ReportButtons from "./ReportButtons";
-import BillingSection from "./BillingSection"; // ADDED: tariff, cost, recommendations (US-20 to US-24)
 
 const READINGS_LIMIT = 20000; // the most the API returns in one request
 
@@ -160,8 +159,6 @@ export default function ExistingDashboard() {
           {forecast && <ForecastChart readings={readings} forecast={forecast.predictions} />}
 
           <AnomalyCheck token={token} />
-
-          <BillingSection token={token} />
 
           <ReportButtons
             token={token}
