@@ -1,0 +1,400 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #f8fafc;
+}
+
+.app-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  color: #64748b;
+}
+
+.app-shell {
+  min-height: 100vh;
+}
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 32px;
+  background: #0f172a;
+  color: white;
+  font-weight: 700;
+}
+
+.app-header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-weight: 400;
+  font-size: 14px;
+}
+
+.app-header-right button {
+  background: #1e293b;
+  color: white;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.app-header-right button:hover {
+  background: #334155;
+}
+
+.app-main {
+  padding: 32px;
+}
+/* >>> ADDED: styles for the dashboard built for US-16/17/18/19.
+   Existing classes above (.app-loading, .app-shell, .app-header,
+   .app-header-right, .app-main) are untouched and left in place,
+   even though the new App.jsx uses different class names below. */
+
+body {
+  background: #0b0f14;
+  color: #e2e8f0;
+}
+
+.app {
+  min-height: 100vh;
+  padding: 24px 32px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.header h1 {
+  margin: 0 0 4px;
+  font-size: 22px;
+}
+
+.header p {
+  margin: 0;
+  color: #8993a4;
+  font-size: 13px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 13px;
+  color: #8993a4;
+}
+
+.header-right button {
+  background: #1e293b;
+  color: #e2e8f0;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.header-right button:hover {
+  background: #334155;
+}
+
+.household-info {
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: #8993a4;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 12px 16px;
+  background: #141922;
+  border: 1px solid #232a35;
+  border-radius: 8px;
+}
+
+.date-range-presets {
+  display: flex;
+  gap: 8px;
+}
+
+.date-range-presets button {
+  background: #1e293b;
+  color: #e2e8f0;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.date-range-presets button:hover {
+  background: #334155;
+}
+
+.date-range-custom {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  color: #8993a4;
+}
+
+.date-range-custom input {
+  background: #0b0f14;
+  color: #e2e8f0;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  padding: 4px 6px;
+}
+
+.status {
+  padding: 16px;
+  color: #8993a4;
+  font-size: 14px;
+}
+
+.status.error {
+  color: #f87171;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.stat-card {
+  background: #141922;
+  border: 1px solid #232a35;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.stat-card .label {
+  font-size: 12px;
+  color: #8993a4;
+  margin-bottom: 4px;
+}
+
+.stat-card .value {
+  font-size: 22px;
+  font-weight: 600;
+  font-family: "JetBrains Mono", monospace;
+}
+
+.chart-panel {
+  background: #141922;
+  border: 1px solid #232a35;
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+}
+
+.chart-panel h2 {
+  margin: 0 0 12px;
+  font-size: 15px;
+  color: #e2e8f0;
+}
+
+.forecast-info {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.forecast-info select {
+  background: #0b0f14;
+  color: #e2e8f0;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  padding: 4px 8px;
+}
+
+.forecast-model-badge {
+  color: #f59e0b;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px;
+}
+
+.anomaly-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.anomaly-row {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding: 8px 12px;
+  background: #0b0f14;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: "JetBrains Mono", monospace;
+}
+
+.anomaly-severity {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 700;
+  color: #0b0f14;
+  font-size: 11px;
+}
+
+.report-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.report-buttons button {
+  background: #1e293b;
+  color: #e2e8f0;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 8px 16px;
+  cursor: pointer;
+}
+
+.report-buttons button:hover:not(:disabled) {
+  background: #334155;
+}
+
+.report-buttons button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+/* <<< END ADDED */
+.anomaly-check-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.anomaly-check-header button {
+  background: #1e293b;
+  color: #e2e8f0;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 8px 16px;
+  cursor: pointer;
+}
+
+.anomaly-check-header button:hover:not(:disabled) {
+  background: #334155;
+}
+
+.anomaly-check-header button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.anomaly-clean {
+  color: #4ade80;
+  font-size: 14px;
+}
+/* >>> ADDED: styles for the new-user flow (choice screen, upload, progress, notes).
+   Paste this at the very END of frontend/src/App.css. Nothing existing is changed. */
+
+/* choice screen (sits on the light login-style card) */
+.user-type-options { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+.user-type-option {
+  width: 100%; text-align: left; padding: 12px 14px; background: #ffffff;
+  border: 1px solid #cbd5e1; border-radius: 8px; cursor: pointer; color: #0f172a;
+}
+.user-type-option strong { display: block; font-size: 14px; margin-bottom: 2px; }
+.user-type-option span { display: block; font-size: 12px; color: #64748b; }
+.user-type-option:hover { border-color: #94a3b8; }
+.user-type-option.selected { border-color: #2563eb; background: #eff6ff; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12); }
+
+/* small text and notes on the dark dashboard */
+.hint { display: block; color: #8993a4; font-size: 13px; margin: 0 0 12px; }
+.chart-unit { color: #8993a4; font-size: 12px; font-weight: 400; }
+.info-note {
+  margin-bottom: 20px; padding: 12px 16px; background: #141922; border: 1px solid #232a35;
+  border-left: 3px solid #f59e0b; border-radius: 8px; font-size: 13px; color: #8993a4;
+}
+.info-note strong { color: #e2e8f0; }
+.info-note ul { margin: 6px 0 0; padding-left: 18px; }
+.limitations { margin: 0; padding-left: 18px; font-size: 13px; color: #8993a4; line-height: 1.6; }
+.date-range-note { font-size: 12px; color: #8993a4; }
+
+/* upload form */
+.upload-form { display: flex; flex-direction: column; gap: 14px; max-width: 520px; }
+.field { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.field label { font-size: 13px; font-weight: 600; color: #e2e8f0; }
+.field input[type="text"], .field input[type="number"] {
+  background: #0b0f14; color: #e2e8f0; border: 1px solid #334155; border-radius: 6px;
+  padding: 8px 10px; font-size: 14px;
+}
+.field input[type="file"] { color: #8993a4; font-size: 13px; }
+.field input:focus { outline: none; border-color: #5eead4; }
+.field-row { display: flex; gap: 14px; }
+.primary-button {
+  align-self: flex-start; background: #0f766e; color: #ffffff; border: 1px solid #14b8a6;
+  border-radius: 6px; padding: 9px 18px; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.primary-button:hover:not(:disabled) { background: #0d9488; }
+.primary-button:disabled { opacity: 0.6; cursor: not-allowed; }
+.format-help { margin-top: 20px; padding-top: 14px; border-top: 1px solid #232a35; font-size: 13px; color: #8993a4; }
+.format-help strong { color: #e2e8f0; }
+.format-help ul { margin: 6px 0 10px; padding-left: 18px; line-height: 1.6; }
+.format-help code, .code-example { font-family: "JetBrains Mono", monospace; font-size: 12px; color: #5eead4; }
+.code-example { background: #0b0f14; border: 1px solid #232a35; border-radius: 6px; padding: 10px 12px; margin: 0; max-width: 360px; }
+
+/* progress screen */
+.progress-now { display: flex; align-items: center; gap: 10px; font-size: 15px; margin: 8px 0 14px; color: #e2e8f0; }
+.spinner {
+  width: 16px; height: 16px; border: 2px solid #334155; border-top-color: #5eead4;
+  border-radius: 50%; animation: secpps-spin 0.9s linear infinite;
+}
+@keyframes secpps-spin { to { transform: rotate(360deg); } }
+.progress-steps { margin: 0; padding-left: 22px; font-size: 13px; color: #64748b; line-height: 1.9; }
+.progress-steps li.done { color: #4ade80; }
+.progress-steps li.current { color: #e2e8f0; font-weight: 600; }
+
+/* reports + anomaly space (also defined earlier; repeated so this block works on its own) */
+.report-rate { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; max-width: 320px; }
+.report-rate label { font-size: 13px; color: #e2e8f0; }
+.report-rate input {
+  background: #0b0f14; color: #e2e8f0; border: 1px solid #334155; border-radius: 6px; padding: 8px 10px;
+}
+.anomaly-check-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.anomaly-check-header button {
+  background: #1e293b; color: #e2e8f0; border: 1px solid #334155; border-radius: 6px; padding: 8px 16px; cursor: pointer;
+}
+.anomaly-check-header button:disabled { opacity: 0.5; cursor: not-allowed; }
+.anomaly-clean { color: #4ade80; font-size: 14px; }
+/* <<< END ADDED */
+
+/* >>> ADDED: anomaly check screens */
+.anomaly-headline { font-size: 15px; margin: 4px 0 6px; color: #e2e8f0; }
+.anomaly-headline strong { color: #f59e0b; font-size: 18px; }
+.anomaly-breakdown { color: #8993a4; font-size: 13px; }
+.anomaly-footnote { margin-top: 14px; }
+.anomaly-chart { margin: 16px 0; }
+.anomaly-chart h3, .anomaly-list-block h3 { margin: 0 0 8px; font-size: 14px; color: #e2e8f0; }
+.anomaly-legend { display: flex; gap: 16px; font-size: 12px; color: #8993a4; margin-top: 6px; }
+.anomaly-legend i { display: inline-block; width: 14px; height: 3px; margin-right: 6px; vertical-align: middle; border-radius: 2px; }
+.anomaly-legend i.dot { width: 9px; height: 9px; border-radius: 50%; }
+.anomaly-tooltip { background: #141922; border: 1px solid #232a35; border-radius: 6px; padding: 8px 10px; font-family: "JetBrains Mono", monospace; font-size: 12px; color: #e2e8f0; }
+.anomaly-list-block { margin-top: 12px; }
+.anomaly-evidence { color: #8993a4; }
+.anomaly-more { margin-top: 8px; }
+/* <<< END ADDED */

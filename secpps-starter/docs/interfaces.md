@@ -28,3 +28,11 @@ See backend/ml/anomaly/README.md.
 
 ## 5. Auth (Jazim → everyone)
 JWT in `Authorization: Bearer <token>` header. Payload shape: TBD.
+Payload shape:
+{ "sub": "<user_email>", "exp": <unix_timestamp> }
+
+To protect any endpoint, import and use the dependency:
+    from api.auth import get_current_user
+    ...
+    def my_route(current_user: User = Depends(get_current_user)):
+        ...

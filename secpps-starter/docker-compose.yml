@@ -23,6 +23,8 @@ services:
       context: ./backend
     container_name: secpps_backend
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
       DATABASE_URL: postgresql://secpps:secpps_dev_password@db:5432/smart_energy
     ports:

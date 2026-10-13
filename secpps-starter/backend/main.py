@@ -21,17 +21,23 @@ from models import Household, EnergyReading
 
 from app_services.billing import predict_future_cost, StaticForecastProvider, TariffRates
 from app_services.recommendation import generate_recommendations
-from models import Tariff 
+from models import Tariff
+
+# >>> ADDED: needed for the new token-scoped /api/my-household/* routes below
+from models_auth import User
+from api.auth import get_current_user
+# <<< END ADDED
 
 app = FastAPI(title="SECPPS API", version="0.1.0")
 
-# Allow the Vite dev server to call this API from the browser.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+#engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 
 
 @app.get("/health")
@@ -45,6 +51,34 @@ def health_db():
         conn.execute(text("SELECT 1"))
     return {"status": "ok"}
 
+
+# --- Team: mount your routers below as you build them ---------------------
+# from api.routes import router as api_router
+# app.include_router(api_router, prefix="/api")
+from api.auth import router as auth_router
+app.include_router(auth_router, prefix="/auth", tags=["auth"])
+
+# >>> ADDED: new routers for US-17 (forecast), US-18 (anomalies), US-19 (reports)
+from api.anomaly import router as anomaly_router
+app.include_router(anomaly_router, prefix="/api", tags=["anomaly"])
+
+from api.forecast import router as forecast_router
+app.include_router(forecast_router, prefix="/api", tags=["forecast"])
+
+from api.reports import router as reports_router
+app.include_router(reports_router, prefix="/api", tags=["reports"])
+# <<< END ADDED
+# >>> ADDED: onboarding choice + new-user forecast (CSV upload)
+from api.profile import router as profile_router
+app.include_router(profile_router, prefix="/api", tags=["profile"])
+
+from api.new_user_forecast import router as new_user_forecast_router
+app.include_router(new_user_forecast_router, prefix="/api", tags=["new-user forecast"])
+# <<< END ADDED
+# >>> ADDED: reports for a new user's uploaded data (US-19)
+from api.new_user_reports import router as new_user_reports_router
+app.include_router(new_user_reports_router, prefix="/api", tags=["new-user reports"])
+# <<< END ADDED
 
 @app.get("/api/households")
 def list_households(limit: int = 50, db: Session = Depends(get_db)):
@@ -125,47 +159,80 @@ def get_summary(household_id: int, db: Session = Depends(get_db)):
         "last_reading": last_ts.isoformat() if last_ts else None,
     }
 
-@app.get("/api/households/{household_id}/predicted-cost")
-def get_predicted_cost(household_id: int, horizon_days: int = 7, db: Session = Depends(get_db)):
-    """US-22: predicted cost for the next `horizon_days` (default 7)."""
-    tariff_row = db.query(Tariff).filter(Tariff.household_id == household_id).first()
-    if tariff_row is None:
-        raise HTTPException(status_code=404, detail="No tariff assigned to this household")
- 
-    # TODO: swap StaticForecastProvider for Binita's real forecast module once it's ready.
-    forecast_provider = StaticForecastProvider(readings=[])
- 
-    predicted = predict_future_cost(
-        tariff_row=tariff_row,
-        household_id=household_id,
-        forecast_provider=forecast_provider,
-        horizon_days=horizon_days,
-    )
-    return predicted
+
+# >>> ADDED: token-scoped versions of the two endpoints above.
+# SECURITY NOTE: the two old endpoints above (/api/households/{household_id}/...)
+# accept household_id from the URL, so anyone with a valid token (or even
+# without one, since they're not auth-protected at all) can view ANY
+# household's data by changing the number in the URL. These new endpoints
+# below fix that for the main dashboard by taking household_id ONLY from
+# the logged-in user's own record (current_user.household_id) — never from
+# the client. The old endpoints are left in place, unchanged, in case
+# anything else (e.g. HouseholdSelector.jsx) still relies on them; just
+# don't use them for anything that should be private to one user.
+@app.get("/api/my-household/readings")
+def get_my_readings(
+    start: Optional[datetime] = Query(None),
+    end: Optional[datetime] = Query(None),
+    limit: int = Query(2000, le=20000),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    household_id = current_user.household_id
+
+    q = db.query(EnergyReading).filter(EnergyReading.household_id == household_id)
+    if start:
+        q = q.filter(EnergyReading.reading_timestamp >= start)
+    if end:
+        q = q.filter(EnergyReading.reading_timestamp <= end)
+    q = q.order_by(EnergyReading.reading_timestamp).limit(limit)
+
+    rows = q.all()
+    if not rows:
+        raise HTTPException(status_code=404, detail="No readings found for your household")
+
+    return [
+        {
+            "reading_timestamp": r.reading_timestamp.isoformat(),
+            "consumption_kwh": r.consumption_kwh,
+            "controlled_load_kwh": r.controlled_load_kwh,
+            "gross_generation_kwh": r.gross_generation_kwh,
+            "net_generation_kwh": r.net_generation_kwh,
+        }
+        for r in rows
+    ]
 
 
-@app.get("/api/households/{household_id}/recommendations")
-def get_recommendations(household_id: int, horizon_days: int = 7, db: Session = Depends(get_db)):
-    """US-23: rule-based recommendations built from the predicted cost."""
-    tariff_row = db.query(Tariff).filter(Tariff.household_id == household_id).first()
-    if tariff_row is None:
-        raise HTTPException(status_code=404, detail="No tariff assigned to this household")
- 
-    forecast_provider = StaticForecastProvider(readings=[])  # TODO: real forecast provider
- 
-    predicted = predict_future_cost(
-        tariff_row=tariff_row,
-        household_id=household_id,
-        forecast_provider=forecast_provider,
-        horizon_days=horizon_days,
+@app.get("/api/my-household/summary")
+def get_my_summary(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    household_id = current_user.household_id
+
+    result = (
+        db.query(
+            func.count(EnergyReading.id),
+            func.avg(EnergyReading.consumption_kwh),
+            func.max(EnergyReading.consumption_kwh),
+            func.sum(EnergyReading.consumption_kwh),
+            func.min(EnergyReading.reading_timestamp),
+            func.max(EnergyReading.reading_timestamp),
+        )
+        .filter(EnergyReading.household_id == household_id)
+        .one()
     )
- 
-    tariff = TariffRates(peak_rate=tariff_row.peak_rate, offpeak_rate=tariff_row.offpeak_rate)
- 
-    # Optional: prior completed cycle's actual cost, from current_cost.py, to enable
-    # the "rising cost trend" rule. Leave as None if you don't have that wired up yet.
-    prior_cycle_cost = None
- 
-    recommendations = generate_recommendations(predicted, tariff, prior_cycle_cost)
-    return {"predicted_cost": predicted, "recommendations": recommendations}
- 
+    count, avg_kwh, max_kwh, total_kwh, first_ts, last_ts = result
+    if count == 0:
+        raise HTTPException(status_code=404, detail="No readings found for your household")
+
+    return {
+        "household_id": household_id,
+        "reading_count": count,
+        "avg_kwh": round(avg_kwh, 4) if avg_kwh is not None else None,
+        "max_kwh": round(max_kwh, 4) if max_kwh is not None else None,
+        "total_kwh": round(total_kwh, 2) if total_kwh is not None else None,
+        "first_reading": first_ts.isoformat() if first_ts else None,
+        "last_reading": last_ts.isoformat() if last_ts else None,
+    }
+# <<< END ADDED
