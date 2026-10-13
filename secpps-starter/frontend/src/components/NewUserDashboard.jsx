@@ -5,7 +5,7 @@ import NewUserForecastChart from "./NewUserForecastChart";
 // >>> ADDED: live meter demo
 import { useLiveMeter, LiveControls, recalcHourly, toDaily } from "./LiveDemo";
 // <<< END ADDED
-import AnomalyPlaceholder from "./AnomalyPlaceholder";
+import AnomalyCheck from "./AnomalyCheck"; // >>> CHANGED: the real anomaly check (was AnomalyPlaceholder)
 import ReportButtons from "./ReportButtons";
 import Warnings from "./Warnings";
 
@@ -82,24 +82,18 @@ export default function NewUserDashboard({ data, token }) {
         <StatCard label="Next 30 days" value={kwh(horizons["1month"]?.total_kwh, 1)} />
       </div>
 
-      <ForecastInfo horizon={horizon} onHorizonChange={setHorizon} model={modelText} />
+      {/* >>> CHANGED: model={null} hides the orange "Model: ..." line. Before: model={modelText} */}
+      <ForecastInfo horizon={horizon} onHorizonChange={setHorizon} model={null} />
+      {/* <<< END CHANGED */}
       {/* >>> ADDED: live meter controls (sit right above the graph) */}
       <LiveControls meter={meter} />
       {/* <<< END ADDED */}
       <NewUserForecastChart history={history} horizon={horizon} horizonData={current} />
 
-      {result.limitations && result.limitations.length > 0 && (
-        <div className="chart-panel">
-          <h2>About this forecast</h2>
-          <ul className="limitations">
-            {result.limitations.map((text) => (
-              <li key={text}>{text}</li>
-            ))}
-          </ul>
-        </div>
-      )}
+      {/* >>> CHANGED: the "About this forecast" panel was removed from this dashboard.
+          Before: {result.limitations && result.limitations.length > 0 && ( <div className="chart-panel"> <h2>About this forecast</h2> ... </div> )} */}
 
-      <AnomalyPlaceholder />
+      <AnomalyCheck token={token} />
       <ReportButtons token={token} source="upload" />
     </>
   );

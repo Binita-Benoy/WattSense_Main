@@ -109,19 +109,21 @@ export function useLiveMeter(base) {
 }
 
 /** Small control bar shown above the graph. */
+// >>> CHANGED: title is just "Live meter" and the line shows only the 30 s countdown and the number of live readings.
+// Before: "Live meter (demo)" and the extra text "forecast recalculated on each one (demo, not the trained model)".
 export function LiveControls({ meter }) {
   const { live, running, left, toggle, addNow, reset } = meter;
   return (
     <div className="household-info" style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-      <strong>Live meter (demo)</strong>
+      <strong>Live meter</strong>
       <button onClick={toggle}>{running ? "Pause" : live.length ? "Resume" : "Start live feed"}</button>
       <button onClick={addNow}>Add reading now</button>
       {live.length > 0 && <button onClick={reset}>Reset</button>}
       <span style={{ color: "#8993a4", fontSize: 13 }}>
-        {running ? `next reading in ${left}s · ` : ""}{live.length} live reading{live.length === 1 ? "" : "s"} added ·
-        forecast recalculated on each one (demo, not the trained model)
+        {running ? `next reading in ${left}s · ` : ""}{live.length} live reading{live.length === 1 ? "" : "s"} added
       </span>
     </div>
   );
 }
+// <<< END CHANGED
 // <<< END ADDED

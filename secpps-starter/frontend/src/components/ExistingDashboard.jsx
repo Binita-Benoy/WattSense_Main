@@ -263,16 +263,8 @@ export default function ExistingDashboard() {
             </div>
           )}
 
-          {/* >>> ADDED: live meter controls (sit right above the first graph). Only at the latest date, where the data ends. */}
-          {atLatest ? (
-            <LiveControls meter={meter} />
-          ) : (
-            <div className="household-info">
-              Live meter demo: set the end date to the latest date ({summary.last_reading.slice(0, 10)}) to use it.
-            </div>
-          )}
-          {/* <<< END ADDED */}
-
+          {/* >>> CHANGED: the live meter controls moved down, to sit right above the "Consumption & forecast" graph.
+              (They used to be here, above the first graph.) */}
           {/* >>> CHANGED: graph shows liveReadings. Before: readings={readings} */}
           <EnergyChart readings={liveReadings} />
           {/* <<< END CHANGED */}
@@ -302,28 +294,35 @@ export default function ExistingDashboard() {
               )}
               {jobDone && (
                 <>
+                  {/* >>> CHANGED: shows only "Forecast for <place>". Removed: "built from the last N days of this household's data
+                      (weather for an assumed location, as the dataset has none)" */}
                   <div className="household-info">
                     Forecast for <strong>{(job.result.location && job.result.location.resolved_name) || job.location}</strong>
-                    {" "}· built from the last {Math.round(job.history.length / 24)} days of this household's data
-                    (weather for an assumed location, as the dataset has none)
                   </div>
+                  {/* <<< END CHANGED */}
                   <div className="stat-grid">
                     <StatCard label="Next 24 hours" value={kwhText(horizons["24h"]?.total_kwh, 1)} />
                     <StatCard label="Next 7 days" value={kwhText(horizons["7day"]?.total_kwh, 1)} />
                     <StatCard label="Next 30 days" value={kwhText(horizons["1month"]?.total_kwh, 1)} />
                   </div>
-                  <ForecastInfo horizon={horizon} onHorizonChange={setHorizon} model={modelText} />
-                  <NewUserForecastChart history={forecastHistory} horizon={horizon} horizonData={current} />
-                  {job.result.limitations && job.result.limitations.length > 0 && (
-                    <div className="chart-panel">
-                      <h2>About this forecast</h2>
-                      <ul className="limitations">
-                        {job.result.limitations.map((text) => (
-                          <li key={text}>{text}</li>
-                        ))}
-                      </ul>
+                  {/* >>> CHANGED: model={null} hides the orange "Model: ..." line. Before: model={modelText} */}
+                  <ForecastInfo horizon={horizon} onHorizonChange={setHorizon} model={null} />
+                  {/* <<< END CHANGED */}
+                  {/* >>> ADDED: live meter controls, moved here from above the first graph. Only at the latest date, where the data ends. */}
+                  {atLatest ? (
+                    <LiveControls meter={meter} />
+                  ) : (
+                    <div className="household-info">
+                      Live meter demo: set the end date to the latest date ({summary.last_reading.slice(0, 10)}) to use it.
                     </div>
                   )}
+                  {/* <<< END ADDED */}
+                  <NewUserForecastChart history={forecastHistory} horizon={horizon} horizonData={current} />
+                  {/* >>> CHANGED: the "About this forecast" panel was removed from this dashboard.
+                      Before:
+                      {job.result.limitations && job.result.limitations.length > 0 && (
+                        <div className="chart-panel"> <h2>About this forecast</h2> <ul> ...limitations... </ul> </div>
+                      )} */}
                 </>
               )}
             </>

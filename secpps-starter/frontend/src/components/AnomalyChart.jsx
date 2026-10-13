@@ -46,7 +46,10 @@ function ChartTooltip({ active, payload }) {
 }
 
 /** The most recent readings as a line, with the unusual ones marked (colour = severity). */
-export default function AnomalyChart({ readings }) {
+// >>> CHANGED: new optional `title` prop (used when the chart shows the days around one clicked anomaly).
+// Before: export default function AnomalyChart({ readings }) {
+export default function AnomalyChart({ readings, title }) {
+// <<< END CHANGED
   if (!readings || readings.length === 0) return null;
 
   const rows = readings.map((r) => ({
@@ -61,7 +64,9 @@ export default function AnomalyChart({ readings }) {
   return (
     <div className="anomaly-chart">
       <h3>
-        Latest {Math.round(readings.length / 24)} days of readings{" "}
+        {/* >>> CHANGED: heading uses `title` when given. Before: always "Latest N days of readings" */}
+        {title || `Latest ${Math.round(readings.length / 24)} days of readings`}{" "}
+        {/* <<< END CHANGED */}
         <span className="chart-unit">
           ({flaggedCount === 0 ? "nothing unusual in this stretch" : `${flaggedCount} unusual, marked`})
         </span>

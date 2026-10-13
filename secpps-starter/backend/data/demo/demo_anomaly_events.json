@@ -1,0 +1,41 @@
+{
+  "household_id": 99990002,
+  "events": [
+    {
+      "start": "2026-01-17 13:00",
+      "hours": 4,
+      "kwh_per_hour": [
+        2.6,
+        3.4
+      ],
+      "what": "Summer heatwave: air-conditioning running flat out all afternoon"
+    },
+    {
+      "start": "2026-04-04 01:00",
+      "hours": 4,
+      "kwh_per_hour": [
+        1.8,
+        2.2
+      ],
+      "what": "Appliance left running overnight (the house should be near standby)"
+    },
+    {
+      "start": "2026-07-22 18:00",
+      "hours": 2,
+      "kwh_per_hour": [
+        4.5,
+        5.5
+      ],
+      "what": "Winter evening: oven and heaters on together, very high load"
+    },
+    {
+      "start": "2026-09-09 11:00",
+      "hours": 3,
+      "kwh_per_hour": [
+        2.8,
+        3.3
+      ],
+      "what": "Unusual weekday-midday load while the house is normally quiet"
+    }
+  ]
+}
