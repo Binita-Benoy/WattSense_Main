@@ -5,6 +5,7 @@ import NewUserForecastChart from "./NewUserForecastChart";
 import AnomalyCheck from "./AnomalyCheck";
 import ReportButtons from "./ReportButtons";
 import Warnings from "./Warnings";
+import BillingSection from "./BillingSection"; // ADDED: tariff, cost, recommendations (US-20 to US-24)
 
 const fmtDate = (iso) =>
   new Date(iso).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
@@ -64,6 +65,7 @@ export default function NewUserDashboard({ data, token }) {
       )}
 
       <AnomalyCheck token={token} />
+      <BillingSection token={token} />
       <ReportButtons token={token} source="upload" />
     </>
   );

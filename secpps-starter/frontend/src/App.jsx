@@ -15,6 +15,7 @@ import { dashboardApi } from "./api/dashboardApi";
 import AuthPage from "./components/AuthPage";
 import NewUserFlow from "./components/NewUserFlow";
 import ExistingDashboard from "./components/ExistingDashboard";
+import AppShell from "./wattsense/AppShell"; // ADDED: navigation bar + Energy page (US-20 to US-24)
 
 export default function App() {
   const { user, token, checkingSession } = useAuth();
@@ -58,6 +59,15 @@ export default function App() {
   }
   if (profile === null) return <div className="status">Loading...</div>;
 
-  if (profile.has_profile && profile.user_type === "new") return <NewUserFlow />;
-  return <ExistingDashboard />;
+  if (profile.has_profile && profile.user_type === "new") 
+    return (
+      <AppShell>
+        <NewUserFlow />
+      </AppShell>
+    );
+    return (
+      <AppShell>
+        <ExistingDashboard />
+      </AppShell>
+    );
 }

@@ -1,133 +1,100 @@
 """
-app_services/current_cost.py
+app_services/current_cost.py  (US-21)
 
-Calculates the cost of ACTUAL recorded consumption so far in the current
-billing cycle, using a household's Tariff (peak/off-peak rate + period).
+Cost of ACTUAL recorded consumption so far in the current billing cycle:
 
-This is deliberately separate from billing.py, which projects cost from
-FORECASTED future usage — different inputs, different question. Both
-modules should import the shared Tariff model from models.py rather
-than each defining their own tariff structure, to avoid divergence.
+    consumption  x  tariff rate  for the time period it fell in (peak / off-peak)
 
-ASSUMPTION: "current billing cycle" = calendar month (1st 00:00 -> now).
-There's no billing_cycles table in the schema yet. If the real billing
-cycle definition differs (e.g. a rolling anniversary date), update
-_current_billing_cycle_start() below — nothing else needs to change.
+Kept separate from billing.py, which costs FORECAST usage. Both use the same
+peak window (see tariffs.py).
+
+The functions take plain (timestamp, kWh) readings rather than querying a
+table, because a user's readings come from one of two places: the dataset
+household in `energy_readings`, or the CSV a new user uploaded. insights.py
+loads whichever applies.
+
+ASSUMPTION: billing cycle = calendar month (1st 00:00 -> now). If the real
+cycle differs, change _cycle_start() only.
+
+OLD DATA: the dataset ends in 2014 and an upload may end weeks ago, so "this
+calendar month" can be empty. When the newest reading is older than the real
+current month, the cycle is the month that reading falls in, and the result
+is flagged is_historical=True so the UI can say so.
 """
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional, Tuple
 
-from sqlalchemy.orm import Session
+from .tariffs import CURRENCY, is_peak
 
-from models import Tariff, EnergyReading
-
-
-def _is_peak(moment: datetime, tariff: Tariff) -> bool:
-    t = moment.time()
-    return tariff.peak_start_time <= t < tariff.peak_end_time
+Reading = Tuple[datetime, float]  # (timestamp, kWh used in that hour)
 
 
-def _current_billing_cycle_start(now: Optional[datetime] = None) -> datetime:
-    now = now or datetime.utcnow()
-    return datetime(now.year, now.month, 1)
+def _cycle_start(moment: datetime) -> datetime:
+    return datetime(moment.year, moment.month, 1)
+
+
+def split_cost(readings: List[Reading], tariff) -> dict:
+    """Sum readings into peak / off-peak kWh and cost them at the tariff's two rates."""
+    peak_kwh = sum(kwh for ts, kwh in readings if is_peak(ts))
+    off_peak_kwh = sum(kwh for ts, kwh in readings if not is_peak(ts))
+    peak_cost = round(peak_kwh * tariff.peak_rate, 2)
+    off_peak_cost = round(off_peak_kwh * tariff.offpeak_rate, 2)
+    return {
+        "peak_kwh": round(peak_kwh, 2),
+        "off_peak_kwh": round(off_peak_kwh, 2),
+        "peak_cost": peak_cost,
+        "off_peak_cost": off_peak_cost,
+        "total_cost": round(peak_cost + off_peak_cost, 2),
+    }
 
 
 @dataclass
 class CostResult:
-    found: bool
-    message: Optional[str] = None
-    total_cost: Optional[float] = None
-    peak_cost: Optional[float] = None
-    off_peak_cost: Optional[float] = None
-    peak_kwh: Optional[float] = None
-    off_peak_kwh: Optional[float] = None
-    currency: str = "$"
-    display_text: Optional[str] = None
-    cycle_start: Optional[str] = None
-    cycle_end: Optional[str] = None
+    total_cost: float
+    peak_cost: float
+    off_peak_cost: float
+    peak_kwh: float
+    off_peak_kwh: float
+    cycle_start: str
+    cycle_end: str
+    is_historical: bool
+    message: str
+    currency: str = CURRENCY
 
     def as_dict(self) -> dict:
         return asdict(self)
 
 
-def calculate_current_cost(db: Session, household_id: int) -> CostResult:
+def calculate_current_cost(readings: List[Reading], tariff, now: Optional[datetime] = None) -> CostResult:
     """
-    US-21 acceptance criteria:
-      - Calculate total estimated cost for the current billing cycle
-        using consumption (kWh), tariff (peak/off-peak rate), and
-        time period (peak/off-peak).
-      - Peak consumption charged at peak rate; off-peak at off-peak rate.
-      - Sum both into a single total.
-      - Missing/no data -> appropriate message, not a false-final total.
-      - Running total, since the cycle isn't closed yet.
+    `readings` must be sorted oldest first. Returns a RUNNING total: the cycle
+    isn't closed, so it is never presented as a final bill.
     """
-    tariff = (
-        db.query(Tariff)
-        .filter(Tariff.household_id == household_id)
-        .order_by(Tariff.created_at.desc())
-        .first()
-    )
-    if tariff is None:
-        return CostResult(
-            found=False,
-            message="No tariff has been assigned to this household yet.",
+    now = now or datetime.utcnow()
+    latest = readings[-1][0] if readings else None
+
+    is_historical = latest is not None and latest < _cycle_start(now)
+    cycle_end = latest if is_historical else now
+    cycle_start = _cycle_start(cycle_end)
+
+    in_cycle = [(ts, kwh) for ts, kwh in readings if cycle_start <= ts <= cycle_end]
+    costs = split_cost(in_cycle, tariff)
+
+    if not in_cycle:
+        message = "No consumption has been recorded yet for the current billing cycle."
+    elif is_historical:
+        message = (
+            f"Your latest readings are from {latest.strftime('%d %b %Y').lstrip('0')}, "
+            "so this is the billing cycle they fall in."
         )
-
-    cycle_start = _current_billing_cycle_start()
-    cycle_end = datetime.utcnow()
-
-    readings = (
-        db.query(EnergyReading)
-        .filter(
-            EnergyReading.household_id == household_id,
-            EnergyReading.reading_timestamp >= cycle_start,
-            EnergyReading.reading_timestamp <= cycle_end,
-        )
-        .all()
-    )
-
-    if not readings:
-        return CostResult(
-            found=True,
-            message="No consumption has been recorded yet for the "
-                    "current billing cycle.",
-            total_cost=0.0,
-            peak_cost=0.0,
-            off_peak_cost=0.0,
-            peak_kwh=0.0,
-            off_peak_kwh=0.0,
-            currency=tariff.currency,
-            display_text=f"{tariff.currency}0.00 for this billing cycle (so far)",
-            cycle_start=cycle_start.isoformat(),
-            cycle_end=cycle_end.isoformat(),
-        )
-
-    peak_kwh = sum(
-        r.consumption_kwh or 0.0 for r in readings
-        if _is_peak(r.reading_timestamp, tariff)
-    )
-    off_peak_kwh = sum(
-        r.consumption_kwh or 0.0 for r in readings
-        if not _is_peak(r.reading_timestamp, tariff)
-    )
-
-    peak_cost = round(peak_kwh * tariff.peak_rate, 2)
-    off_peak_cost = round(off_peak_kwh * tariff.off_peak_rate, 2)
-    total_cost = round(peak_cost + off_peak_cost, 2)
+    else:
+        message = "Running estimate. It updates as more readings arrive this cycle."
 
     return CostResult(
-        found=True,
-        message="Running estimate; will update as more readings come in "
-                "this cycle.",
-        total_cost=total_cost,
-        peak_cost=peak_cost,
-        off_peak_cost=off_peak_cost,
-        peak_kwh=round(peak_kwh, 2),
-        off_peak_kwh=round(off_peak_kwh, 2),
-        currency=tariff.currency,
-        display_text=f"{tariff.currency}{total_cost:.2f} for this billing "
-                      f"cycle (running estimate)",
         cycle_start=cycle_start.isoformat(),
         cycle_end=cycle_end.isoformat(),
+        is_historical=is_historical,
+        message=message,
+        **costs,
     )

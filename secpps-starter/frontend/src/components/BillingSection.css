@@ -1,0 +1,44 @@
+/* Styles for BillingSection.jsx (tariff, cost, recommendations).
+   Only new class names; everything else re-uses App.css (chart-panel, stat-grid, field, hint...).
+   Peak is always amber (#f59e0b) and off-peak always teal (#5eead4), the two colours the charts already use. */
+
+p.hint.billing-note { margin: 12px 0 0; }
+.billing-refreshing { opacity: 0.55; transition: opacity 0.15s; }
+.billing-saved { margin: 0 0 12px; color: #4ade80; font-size: 13px; }
+
+.report-buttons button.billing-primary { background: #0f766e; border-color: #14b8a6; color: #ffffff; font-weight: 600; }
+.report-buttons button.billing-primary:hover:not(:disabled) { background: #0d9488; }
+
+/* tariff */
+.tariff-rates { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 14px; }
+.tariff-rate { background: #0b0f14; border: 1px solid #232a35; border-top: 3px solid #f59e0b; border-radius: 8px; padding: 14px 16px; }
+.tariff-rate.is-offpeak { border-top-color: #5eead4; }
+.tariff-rate .label { font-size: 12px; color: #8993a4; margin-bottom: 4px; }
+.tariff-rate .value { font-size: 22px; font-weight: 600; font-family: "JetBrains Mono", monospace; }
+.tariff-rate .period { font-size: 13px; color: #8993a4; margin-top: 4px; }
+
+/* peak / off-peak split bar */
+.split { margin-top: 14px; }
+.split-head { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; }
+.split-head span:last-child { font-family: "JetBrains Mono", monospace; }
+.split-track { display: flex; gap: 2px; height: 16px; background: #232a35; border-radius: 4px; overflow: hidden; }
+.split-peak { background: #f59e0b; min-width: 2px; }
+.split-offpeak { background: #5eead4; min-width: 2px; }
+.split-legend { display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 6px; font-size: 12px; color: #8993a4; }
+.swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; }
+.swatch.is-peak { background: #f59e0b; }
+.swatch.is-offpeak { background: #5eead4; }
+
+/* recommendations */
+.rec-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.rec-card { background: #0b0f14; border: 1px solid #232a35; border-left: 3px solid #8993a4; border-radius: 6px; padding: 14px 16px; }
+.rec-card.is-high { border-left-color: #f87171; }
+.rec-card.is-medium { border-left-color: #f59e0b; }
+.rec-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 15px; }
+.rec-priority { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; border: 1px solid #334155; color: #8993a4; white-space: nowrap; }
+.rec-priority.is-high { color: #f87171; border-color: #f87171; }
+.rec-priority.is-medium { color: #f59e0b; border-color: #f59e0b; }
+.rec-message { margin: 8px 0 12px; font-size: 14px; line-height: 1.5; }
+.rec-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px 24px; margin: 0; padding-top: 12px; border-top: 1px solid #232a35; }
+.rec-facts dt { font-size: 12px; color: #8993a4; margin-bottom: 2px; }
+.rec-facts dd { margin: 0; font-size: 13px; line-height: 1.5; }
