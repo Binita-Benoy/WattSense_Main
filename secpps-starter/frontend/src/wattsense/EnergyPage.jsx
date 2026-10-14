@@ -606,7 +606,8 @@ export default function EnergyPage() {
     <div className="energy">
       <header className="page-head">
         <h1>Energy</h1>
-        <p>What your electricity costs, what it's likely to cost next, and how to bring it down.</p>
+        <p>Everything is energy and that is all there is to it. Match the frequency of the reality you want and you cannot help but get that reality.</p>
+        <p>-Albert Einstein</p>
       </header>
       {isNoTariff(cost.error) ? <SetupHero onSaved={refresh} /> : body}
     </div>

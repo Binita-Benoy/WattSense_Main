@@ -19,11 +19,13 @@ import os
 import sys
 import traceback
 
-# live_pipeline.py imports its sibling modules by plain name (features,
-# simple_cnn_lstm, direct_multistep_global), so its folder must be on sys.path.
+# >>> CHANGED: the pipeline moved (Binita's PR #17: bidirectional CNN-LSTM is now the only model).
+# Before: CNN_DIR = ...ml/forecasting/cnn   and   from live_pipeline import run_live_forecast_all_horizons
+# Now:    ml/forecasting/cnn_bidirectional   and   from live_forecast_bidirectional import run_live_forecast_all_horizons
 CNN_DIR = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "ml", "forecasting", "cnn")
+    os.path.join(os.path.dirname(__file__), "..", "ml", "forecasting", "cnn_bidirectional")
 )
+# <<< END CHANGED
 
 
 def _clean(obj):
@@ -62,9 +64,27 @@ def main():
     parser.add_argument("--out", required=True)
     args = parser.parse_args()
 
+    # >>> ADDED: make the paths absolute, then work from the pipeline's own folder, because the new script
+    # finds its saved_models/ and data/ folders relative to itself.
+    args.csv, args.out = os.path.abspath(args.csv), os.path.abspath(args.out)
+    os.chdir(CNN_DIR)
+    # <<< END ADDED
+
     sys.path.insert(0, CNN_DIR)
     try:
-        from live_pipeline import run_live_forecast_all_horizons
+        # >>> CHANGED: new module name (see CNN_DIR above)
+        from live_forecast_bidirectional import (
+            run_live_forecast_all_horizons,
+            REC_MODEL_PATH,
+        )
+
+        # >>> ADDED: a clear message if the model files were never generated (saved_models/ is gitignored)
+        if not os.path.exists(REC_MODEL_PATH):
+            raise ValueError(
+                "The forecasting model files are missing on the server (saved_models/). "
+                "Ask the team to generate or share them."
+            )
+        # <<< END ADDED
 
         result = run_live_forecast_all_horizons(
             user_csv_path=args.csv,
@@ -72,6 +92,7 @@ def main():
             country_code=args.country,
             state=args.state,
         )
+        # <<< END CHANGED
         payload, code = {"ok": True, "result": _clean(result)}, 0
     except Exception as exc:  # noqa: BLE001 - we report every failure to the user
         traceback.print_exc()
