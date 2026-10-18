@@ -1,15 +1,4 @@
-"""US-13: validation calibration and held-out synthetic anomaly evaluation.
 
-This version calibrates three detectors using VALIDATION only:
-1. Isolation Forest decision threshold.
-2. LSTM Autoencoder decision threshold.
-3. A weighted IF + AE ensemble (weight + threshold).
-
-The ensemble uses the stable train-referenced 0..1 scores from both base models.
-Its validation objective is F-beta (F2 by default) so the project can prioritise
-true-anomaly detection/recall without ignoring precision.  The selected ensemble
-configuration is locked before TEST evaluation.
-"""
 from __future__ import annotations
 
 import logging

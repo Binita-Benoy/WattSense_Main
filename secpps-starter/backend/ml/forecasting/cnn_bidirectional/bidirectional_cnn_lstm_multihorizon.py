@@ -1,36 +1,4 @@
-"""
-Third CNN-LSTM variant (Bidirectional LSTM extension) - 24h and 7-day
-horizons, WITH weather. This is the third proposal-required sub-variant
-(Section 2.1.2: "...multiple variants will be evaluated including sequential
-Conv1D-LSTM, TimeDistributed CNN-LSTM..., and bidirectional LSTM extensions").
 
-Architecture family: same as the sequential Conv1D-LSTM model (causal Conv1D
-front end, LOOKBACK=24 flat hourly window, no TimeDistributed day-blocking),
-with the single LSTM layer replaced by a Bidirectional(LSTM) - the minimal,
-proposal-literal reading of "bidirectional LSTM extension" as an extension
-of the existing CNN-LSTM hybrid, not a different family of model.
-
-Bidirectionality is safe to use here: it reads both directions WITHIN the
-168-or-24-hour lookback window, which is entirely historical data relative
-to the prediction point - there is no leakage into the true future, only
-into-the-past-of-the-window information the forward-only LSTM in the other
-two variants couldn't use. Causal padding on the Conv1D layer (carried over
-from the sequential model's own design) keeps the convolution itself from
-peeking at within-window future steps too.
-
-Every tuning lesson learned building the first two variants is applied here
-from the start rather than rediscovered:
-  - TimeDistributed CNN-LSTM's first run needed patience raised 3->6 +
-    ReduceLROnPlateau + dropout after the conv block + Huber loss once val
-    loss was observed plateauing early - all four are already in this file.
-  - Fitted scalers are persisted via scaler_io.py from the first run.
-  - pool-limit defaults to 6, not 10 - the value that avoided OOM everywhere
-    else in this project.
-
-Usage (GPU-first, CPU-fallback-only-if-it-fails, per your standing instruction):
-    docker compose exec -T backend python ml/forecasting/cnn_bidirectional/bidirectional_cnn_lstm_multihorizon.py --pool-limit 6 --household-id 8162493
-    docker compose exec -T -e CUDA_VISIBLE_DEVICES="" backend python ml/forecasting/cnn_bidirectional/bidirectional_cnn_lstm_multihorizon.py --pool-limit 6 --household-id 8162493
-"""
 import argparse
 import os
 

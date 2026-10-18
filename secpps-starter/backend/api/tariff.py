@@ -1,19 +1,4 @@
-"""
-Tariff, cost and recommendation routes (US-20 to US-24).
 
-  GET /api/my-household/tariff           US-20  the tariff structure (rates + periods)
-  PUT /api/my-household/tariff           US-20  provide / change the two rates
-  GET /api/my-household/cost             US-21  cost of recorded usage this billing cycle
-  GET /api/my-household/cost/predicted   US-22  cost of forecast usage (?horizon=24h|7day|1month)
-  GET /api/my-household/advice           US-23/24  recommendations (?horizon=...)
-
-Whose data: ALWAYS the logged-in user's (see app_services/insights.py). Nothing
-is taken from the request except the rates and the horizon.
-
-Mounted in main.py like the other routers:
-    from api.tariff import router as tariff_router
-    app.include_router(tariff_router, prefix="/api", tags=["tariff & cost"])
-"""
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session

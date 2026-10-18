@@ -1,7 +1,4 @@
-"""
-A tiny helper for the PDF reports (plain reportlab, no extra packages): headings, wrapped
-text lines and simple tables, with automatic new pages.
-"""
+
 import io
 
 from reportlab.lib.pagesizes import A4

@@ -1,26 +1,4 @@
-"""
-Demo households for EXISTING users (a year of hourly consumption, Nov 2025 to 12 Oct 2026).
 
-Two households, so the demo can show both cases:
-    99990001  "clean"      normal usage, no anomalies
-    99990002  "anomalies"  same kind of usage with 4 planted events (listed in demo_anomaly_events.json)
-
-What this script does (safe to run again: it replaces the demo rows each time):
-    1. Makes backend/data/demo/demo_clean.csv and demo_anomalies.csv if they are missing (columns: timestamp,kwh).
-       The data is generated with fixed random seeds, so everyone gets identical files. Delete a CSV (or pass
-       --regenerate) to make it again; you can also edit the CSVs by hand.
-    2. Loads them into the database (households + energy_readings, source='demo'). The original dataset
-       households are NOT touched.
-    3. Fetches matching historical weather from Open-Meteo for the anomaly detector (skip with --skip-weather).
-    4. Optionally points two accounts at the demo households, so they become existing users on those households:
-           --clean-email a@x.com --anomaly-email b@x.com
-       (register the accounts first; this removes their "new user" mark and any saved upload/forecast, so the
-        dashboard builds a fresh forecast from the demo data.)
-
-Run from the backend folder, inside the container:
-    docker compose exec backend python scripts/seed_demo_households.py \
-        --clean-email you@example.com --anomaly-email other@example.com
-"""
 import argparse
 import json
 import os

@@ -1,16 +1,4 @@
-"""
-Forecast routes (US-17) for dataset households ("existing users").
 
-IMPORTANT: this is still a MOCK, by team decision. The trained model
-(ml/forecasting/cnn/) is built for brand-new households (live_pipeline.py: it needs an
-uploaded CSV + location). There is no function yet that forecasts an already-registered
-household from the data in our database. New users get the real model through
-api/new_user_forecast.py. Replace _generate_mock_forecast() when that gap is closed.
-
-CHANGED vs the first version: optional `as_of`, so the forecast continues from the last reading
-at or before the end of the date range shown on the chart (no gap), and the unit is "kWh per hour"
-for every horizon (the mock always produces hourly points; it used to say "per day" for two of them).
-"""
 from datetime import datetime, timedelta
 from random import uniform
 from typing import Optional

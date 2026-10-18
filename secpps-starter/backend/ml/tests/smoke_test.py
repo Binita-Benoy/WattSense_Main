@@ -1,10 +1,4 @@
-"""Offline smoke tests for the rewritten anomaly pipeline.
 
-Does not require PostgreSQL or TensorFlow. It validates feature causality,
-public-holiday propagation, Isolation Forest calibration/evaluation, sequence
-context construction, and current-timestep AE error alignment using a dummy
-predictor.
-"""
 from __future__ import annotations
 
 import os

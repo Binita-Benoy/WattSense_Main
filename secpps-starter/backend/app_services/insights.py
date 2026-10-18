@@ -1,20 +1,4 @@
-"""
-app_services/insights.py  (US-21 to US-24)
 
-Puts the pieces together for the API, for whoever is logged in:
-
-    their readings + their tariff                      -> current cost       (US-21)
-    forecast (Binita) -> tariff calculation            -> predicted cost     (US-22)
-    predicted cost + tariff + recent actual cost       -> recommendations    (US-23/24)
-
-Whose data: always the logged-in user's, the same rule api/anomaly.py uses.
-  * an account registered as a NEW user -> the CSV they uploaded (forecast_jobs.history_json)
-    and the model forecast built from it (forecast_jobs.result_json)
-  * any other account                   -> the dataset household assigned to them
-
-The tariff is stored against user.household_id for both kinds of user: every
-account has exactly one, so it is a stable key that always exists.
-"""
 import json
 from collections import OrderedDict
 from dataclasses import asdict, dataclass

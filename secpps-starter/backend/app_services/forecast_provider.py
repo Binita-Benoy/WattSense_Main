@@ -1,28 +1,4 @@
-"""
-app_services/forecast_provider.py  (US-22)
 
-Turns "what we know about a user's future usage" into hourly ForecastReading
-points that billing.calculate_predicted_cost() can price.
-
-Two sources:
-
-  1. The CNN-LSTM forecast (Binita's live_pipeline.py). New users get one when
-     they upload their CSV; api/new_user_forecast.py stores the pipeline's
-     output in forecast_jobs.result_json. That is used whenever it exists.
-
-  2. A baseline for accounts with no model forecast (dataset households, whose
-     /forecast endpoint is still a random mock by team decision, so it is NOT
-     used for money). Each future hour is the household's own average for that
-     hour of the day (weekday / weekend) over its last LOOKBACK_DAYS of
-     readings. Real data, but a "typical week", not a model. The API says
-     which source was used.
-
-Why daily totals are split into hours: the pipeline's 7-day and 1-month
-horizons are kWh PER DAY, but a tariff charges by time of day. Each day's
-total is spread over its 24 hours using the user's own hourly usage shape.
-The day's total is kept exactly; only its peak / off-peak split is estimated.
-The first 24 hours use the pipeline's real hourly values.
-"""
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 

@@ -1,7 +1,4 @@
-"""
-Checks the actual feature matrix for real, specific data quality issues,
-rather than guessing whether regenerating would help.
-"""
+
 import os
 
 import pandas as pd

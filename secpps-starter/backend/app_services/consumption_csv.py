@@ -1,20 +1,4 @@
-"""
-Validation and clean-up for a new user's uploaded consumption CSV.
 
-The forecasting pipeline (ml/forecasting/cnn/live_pipeline.py) needs a CSV with
-the columns `timestamp` and `kwh`, ONE ROW PER HOUR with no gaps. It does not
-check this itself (its lags are by row count, e.g. shift(168)), so bad input
-would silently produce wrong features. This module checks the upload and
-converts what it reasonably can:
-
-  - delimiter: comma, tab or semicolon are all accepted
-  - dates:     year-first (2025-06-01 00:00), or day/month vs month/day, which is
-               worked out from the data (6/1/2025 could be 6 Jan or 1 June; a
-               value like 13/1/2025 settles it)
-  - interval:  hourly is kept; 30/15/5-minute readings are summed into hourly
-               kWh; daily or coarser data is rejected
-  - gaps:      up to 24 missing hours in a row are interpolated; more is rejected
-"""
 import io
 import warnings
 from datetime import datetime, timedelta

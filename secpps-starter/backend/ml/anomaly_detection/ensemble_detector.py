@@ -1,13 +1,4 @@
-"""Validation-calibrated weighted ensemble for Isolation Forest + LSTM AE.
 
-The ensemble operates on the stable 0..1 anomaly scores produced by the two
-base detectors.  A validation-only grid search selects the AE/IF weight and a
-single decision threshold.  The default objective is F2, which places more
-weight on recall than precision and is therefore appropriate when the project
-priority is detecting more true anomalies while still penalising false alarms.
-
-TEST data is never used when choosing the weights or threshold.
-"""
 from __future__ import annotations
 
 import logging

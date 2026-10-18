@@ -1,13 +1,4 @@
-"""
-Report generation routes (US-19) for dataset households ("existing users").
 
-  GET /api/my-household/report.csv   one row per reading in the chosen date range
-  GET /api/my-household/report.pdf   consumption summary (and cost, see below)
-
-COST: reliable tariff data isn't available yet (the Tariff model and
-app_services/current_cost.py have a field mismatch), so cost is only included when the
-user supplies their own rate with ?rate_per_kwh=0.30. The report labels it as their figure.
-"""
 import csv
 import io
 from datetime import datetime

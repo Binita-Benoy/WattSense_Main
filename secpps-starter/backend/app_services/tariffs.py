@@ -1,13 +1,4 @@
-"""
-app_services/tariffs.py  (US-20)
 
-The tariff structure every cost calculation shares.
-
-The peak window is STANDARD for all households. It is defined once, in
-billing.py (PEAK_START / PEAK_END), and re-used here so actual cost, predicted
-cost and recommendations can never disagree about what "peak" means. Only the
-two rates are stored per household (the `tariffs` table, Tariff in models.py).
-"""
 from datetime import time
 from typing import Optional
 

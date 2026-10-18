@@ -1,23 +1,4 @@
-"""
-US-23 - Generate energy-saving recommendations
-US-24 - what each recommendation carries for the dashboard
-------------------------------------------------------------
-Rule-based (not ML). Every recommendation is generated from the household's
-real predicted cost (US-22) and its own tariff, and carries the numbers that
-triggered it - no generic tips.
 
-Pattern from the story:
-    high predicted peak consumption -> recommend shifting usage -> explain why
-
-Each Recommendation has the four things US-24 asks the dashboard to show:
-    message           the recommendation
-    explanation       why it was generated
-    expected_benefit  what following it is expected to achieve
-    priority          high / medium / low
-
-This module does not talk to the DB. Callers assemble the inputs and pass
-them in, which keeps every rule unit-testable.
-"""
 
 from __future__ import annotations
 

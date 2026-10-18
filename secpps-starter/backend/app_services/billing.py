@@ -1,25 +1,4 @@
-"""
-US-22 — Predict future energy cost
------------------------------------
-As a household user, I want to see the estimated cost of my future
-consumption, so that I can anticipate my upcoming electricity bill.
 
-Dependency: this module consumes a *forecast* (predicted consumption per
-half-hour/hourly interval) produced by Binita's forecasting service. It does
-NOT compute the forecast itself. To keep app_services decoupled from the
-forecasting model's internals (still being built by Binita), the forecast is
-accepted through a small `ForecastProvider` protocol — swap
-`SgscForecastProvider` below for whatever Binita's module actually exposes
-once it's finalised; the classification/costing logic does not need to
-change.
-
-This mirrors the existing split in this layer:
-    current_cost.py -> actual recorded consumption, current billing cycle
-    billing.py       -> forecasted consumption, future cost prediction
-
-Both reuse the same peak/off-peak classification rules so a kWh is charged
-identically whether it already happened or is predicted to happen.
-"""
 
 from __future__ import annotations
 

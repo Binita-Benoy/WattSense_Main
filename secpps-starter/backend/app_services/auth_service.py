@@ -1,7 +1,4 @@
-"""
-Auth business logic: password hashing (bcrypt) and JWT creation/verification.
-Kept separate from api/auth.py so routes stay thin, per the api/ + app_services/ split.
-"""
+
 
 import os
 from datetime import datetime, timedelta, timezone

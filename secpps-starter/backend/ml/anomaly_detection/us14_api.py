@@ -1,39 +1,4 @@
-"""US-14: backend inference for existing or newly-created households.
 
-The frontend/demo workflow used by WattSense is now database-driven:
-
-1. A new household and its hourly consumption history are inserted into
-   ``households`` / ``energy_readings`` (for example by
-   ``forecasting/generate_synthetic_household.py``).
-2. US-14 calls the teammate-owned ``ensure_historical_weather`` helper for
-   every requested household.  That helper checks ``weather_readings`` and,
-   when needed, fetches historical temperature/humidity/shortwave-radiation
-   from Open-Meteo and inserts it into PostgreSQL.
-3. US-14 loads the complete energy + weather history from PostgreSQL.
-4. The same leakage-aware US-10 features used during training are rebuilt.
-5. The saved US-11 Isolation Forest, US-12 LSTM Autoencoder, and US-13
-   validation-calibrated ensemble configuration are loaded once and reused.
-6. Results are returned as a frontend-friendly Python dictionary / JSON.
-
-No retraining occurs in US-14.
-
-Recommended backend request forms
----------------------------------
-Single household::
-
-    {"household_id": 99999999}
-
-Several households::
-
-    {"household_ids": [99999999, 99999998]}
-
-Every household currently in energy_readings::
-
-    {"all_households": true}
-
-Optionally, ``source`` can be supplied with ``all_households`` to restrict the
-set, e.g. ``{"all_households": true, "source": "synthetic"}``.
-"""
 from __future__ import annotations
 
 import json

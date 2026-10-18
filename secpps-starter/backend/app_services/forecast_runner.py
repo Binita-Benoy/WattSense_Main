@@ -1,17 +1,4 @@
-"""
-Runs the new-user forecasting pipeline in its OWN process.
 
-Why a separate process: the pipeline loads TensorFlow, fine-tunes two models and
-takes a while. Running it here keeps that memory and any crash away from the web
-server, and lets the API kill it if it runs too long.
-
-Usage (the API calls this, you normally don't):
-    python forecast_runner.py --csv input.csv --location "Sydney, Australia" \
-        --country AU --state NSW --out result.json
-
-Writes {"ok": true, "result": {...}} and exits 0, or {"ok": false, "error": "..."}
-and exits 2 for a failure we can describe. Progress lines are printed to stdout.
-"""
 import argparse
 import json
 import math

@@ -1,10 +1,4 @@
-"""
-Onboarding choice routes (new user vs existing user).
 
-POST   /api/profile     - save the choice
-GET    /api/profile/me  - has this user chosen yet, and what?
-DELETE /api/profile     - reset the choice (handy for demos: "Change user type")
-"""
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status

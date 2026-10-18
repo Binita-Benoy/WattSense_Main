@@ -1,20 +1,4 @@
-"""
-New-user forecast routes.
 
-POST   /api/forecast/new-user   upload a CSV (timestamp,kwh) + location -> starts a background job
-GET    /api/forecast/new-user   status; once done, also the history + forecast result
-DELETE /api/forecast/new-user   remove the saved upload/result (not allowed while running)
-
-The model run takes a while (it fine-tunes two networks per user), so the POST
-returns immediately (202) and the page polls the GET until status is "done" or
-"failed". The result is saved in the database, so reloads are instant.
-
-Only one forecast runs at a time (TensorFlow is memory-hungry); others show
-"queued" until their turn.
-
-NOTE: if the backend restarts mid-run (for example because you saved a .py file
-while uvicorn --reload is on), that run is lost and the job is marked failed.
-"""
 import json
 import logging
 import os

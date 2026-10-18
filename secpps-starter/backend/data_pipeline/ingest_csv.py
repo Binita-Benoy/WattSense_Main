@@ -1,11 +1,4 @@
-"""
-SGSC cleaned-data ingestion pipeline.
 
-Loads the cleaned hourly SGSC dataset and selected household metadata
-into the WattSense PostgreSQL database.
-
-Owner: Alka - Data Engineering
-"""
 
 import os
 from pathlib import Path
