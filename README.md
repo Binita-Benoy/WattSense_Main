@@ -52,22 +52,18 @@ The first build takes several minutes. When the logs settle, check:
 
 ## 4. Loading the demonstration data (recommended)
 
-The SGSC data ends around 2014, so it cannot show forecasts based on current weather. Two synthetic demonstration households with a year of recent hourly data are included: one with normal usage and one with four planted anomalies.
-
-With the containers running, open a second terminal in the project root and run:
-
-```bash
-docker compose exec backend python scripts/seed_demo_households.py --create-demo-accounts
-```
-
-This loads both households, fetches matching weather, and creates two ready-made logins:
+1. Create two accounts using register functionality (Examples given below)- refer step 5 #new user.
 
 | Email | Password | Shows |
-| --- | --- | --- |
-| demo.clean@example.com | demo1234 | Household with normal usage |
-| demo.anomalies@example.com | demo1234 | Household with four planted anomalies |
+| demo.clean@example.com | demo1234 | Household with normal usage [input normal data csv] |
+| demo.anomalies@example.com | demo1234 | Household with four planted anomalies [input anomalous data csv]|
 
-You can choose a different password with `--demo-password`. The script is safe to run again.
+
+```bash
+   docker compose exec -T backend python scripts/seed_demo_households.py --clean-email clean@example.com --anomaly-email anomaly@example.com
+```
+
+This loads both households, fetches matching weather, and creates two ready-made logins of existing users
 
 These are local demonstration accounts only.
 
@@ -75,7 +71,7 @@ These are local demonstration accounts only.
 
 Open http://localhost:5173.
 
-### Existing user (a household already in the database)
+### Existing user (a household already in the database for atleast 3 months(simulated here using step 4))
 
 1. Log in with a demonstration account (Section 4).
 2. The dashboard opens on the last 30 days. Change the range with the preset buttons or the From and To dates.
