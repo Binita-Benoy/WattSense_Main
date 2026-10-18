@@ -74,10 +74,6 @@ def _require_tariff(db: Session, user):
         raise NoTariff("No tariff has been set for your household yet.")
     return tariff_row
 
-
-# ---------------------------------------------------------------------------
-# US-21
-# ---------------------------------------------------------------------------
 def current_cost(db: Session, user) -> dict:
     tariff_row = _require_tariff(db, user)
     usage = load_usage(db, user)
@@ -86,9 +82,6 @@ def current_cost(db: Session, user) -> dict:
     return data
 
 
-# ---------------------------------------------------------------------------
-# US-22
-# ---------------------------------------------------------------------------
 def _predict(db: Session, user, horizon: str):
     tariff_row = _require_tariff(db, user)
     tariff = TariffRates(peak_rate=tariff_row.peak_rate, offpeak_rate=tariff_row.offpeak_rate)
@@ -169,9 +162,6 @@ def predicted_cost(db: Session, user, horizon: str = "7day") -> dict:
     return data
 
 
-# ---------------------------------------------------------------------------
-# US-23 / US-24
-# ---------------------------------------------------------------------------
 def recommendations(db: Session, user, horizon: str = "7day") -> dict:
     tariff_row, tariff, usage, _, predicted, forecast = _predict(db, user, horizon)
     days = HORIZON_DAYS[horizon]

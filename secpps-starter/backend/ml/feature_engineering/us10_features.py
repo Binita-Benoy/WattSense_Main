@@ -1,4 +1,4 @@
-"""US-10: leakage-aware energy, calendar and weather feature engineering."""
+"""Leakage-aware energy, calendar and weather feature engineering."""
 from __future__ import annotations
 
 import logging
@@ -50,6 +50,7 @@ def add_lag_features(df: pd.DataFrame, target: str = COL_KWH) -> pd.DataFrame:
     """Add historical consumption lags; all are strictly from the past."""
     df = df.copy()
     for lag in LAG_HOURS:
+        # for each row, copy the 'target' value from 'lag' number of rows earlier into a new column.
         df[f"lag_{lag}h"] = df[target].shift(lag)
     return df
 
@@ -96,7 +97,7 @@ def add_rolling_statistics(df: pd.DataFrame, target: str = COL_KWH) -> pd.DataFr
 
     for name, window in ROLLING_WINDOWS.items():
         min_periods = max(6, window // 4)
-        rolling = history.rolling(window, min_periods=min_periods)
+        rolling = history.rolling(window, min_periods=min_periods) # when min_periods of data is there, a moving window is created by rolling function of 'window' length which is later used to calculate mean and std
         df[f"rolling_{name}_mean"] = rolling.mean()
         df[f"rolling_{name}_std"] = rolling.std()
 
@@ -115,15 +116,15 @@ def add_peak_indicator(df: pd.DataFrame, target: str = COL_KWH) -> pd.DataFrame:
 
     threshold = (
         history.rolling(window, min_periods=min_periods)
-        .quantile(PEAK_PERCENTILE / 100.0)
+        .quantile(PEAK_PERCENTILE / 100.0) # here, from a moving 'window', we calculate 'peak_percentile' value in that window which later acts as threshold to identify peaks
     )
     df["peak_threshold_30d"] = threshold
     df["is_peak"] = (df[target] > threshold).astype("int8")
 
     baseline_24h = history.rolling(24, min_periods=6).mean()
     df["peak_ratio"] = (
-        df[target] / baseline_24h.replace(0, np.nan)
-    ).clip(lower=0, upper=10)
+        df[target] / baseline_24h.replace(0, np.nan) # this provides a ratio of how current value is compared to 24-hour average
+    ).clip(lower=0, upper=10) # clipping is done to restrict ratio values between 0 and 10
     return df
 
 
@@ -145,7 +146,7 @@ def add_deviation_features(df: pd.DataFrame, target: str = COL_KWH) -> pd.DataFr
     df["abs_change_1h"] = df["change_1h"].abs()
 
     # Same-hour ratio is useful for both sudden spikes and sudden dropouts.
-    eps = 1e-4
+    eps = 1e-4 # added in calculations later, to avoid division by zero
     if "lag_24h" in df.columns:
         df["lag24_ratio"] = (
             (df[target] + eps) / (df["lag_24h"] + eps)
@@ -252,8 +253,6 @@ def build_feature_matrix(df_all: pd.DataFrame, save: bool = True) -> pd.DataFram
     numeric_cols = F.select_dtypes(include=[np.number]).columns
     F[numeric_cols] = F[numeric_cols].replace([np.inf, -np.inf], np.nan)
 
-    # Do not fill remaining NaNs with medians calculated from the full dataset.
-    # Doing so would leak validation/test distribution information into training.
     missing = F[numeric_cols].isna().sum()
     missing = missing[missing > 0].sort_values(ascending=False)
     if not missing.empty:

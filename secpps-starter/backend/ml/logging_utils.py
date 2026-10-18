@@ -46,14 +46,7 @@ def log_print(message="", level=logging.INFO):
 
 
 def safe_savefig(fig, path, dpi=150, bbox_inches="tight", **kwargs):
-    """Save a Matplotlib figure without allowing a filesystem/Windows lock to abort the ML pipeline.
-
-    The requested path is tried first.  If Windows rejects that specific filename
-    (for example because an existing PNG is locked by another application), a
-    timestamped filename in the same directory is tried, followed by the current
-    working directory.  If all locations fail, the error is logged and execution
-    continues because graph export is evidence/output, not part of model scoring.
-    """
+    """Save a Matplotlib figure without allowing a filesystem/Windows lock to abort the ML pipeline."""
     from pathlib import Path
 
     target = Path(str(path)).expanduser()

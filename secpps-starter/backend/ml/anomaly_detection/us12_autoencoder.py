@@ -1,4 +1,4 @@
-"""US-12: Multivariate LSTM Autoencoder with point-aligned anomaly scoring."""
+"""Multivariate LSTM Autoencoder with point-aligned anomaly scoring."""
 from __future__ import annotations
 
 import logging
@@ -622,12 +622,7 @@ def verify_us12(results: pd.DataFrame) -> bool:
     return bool(ok)
 
 def run_ae_pipeline(splits: dict) -> dict:
-    """
-    Standalone US-12 pipeline using a train-percentile fallback threshold.
 
-    The full runner later replaces this threshold with a validation-calibrated
-    threshold before final test/API output.
-    """
     seq_data = prepare_split_sequences(splits["train"], splits["val"], splits["test"])
     model = train_autoencoder(seq_data)
     threshold = compute_error_reference(model, seq_data)

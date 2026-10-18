@@ -31,18 +31,13 @@ class TariffRates:
 
 @dataclass(frozen=True)
 class ForecastReading:
-    """One predicted-consumption interval, as produced by Binita's forecast."""
+    """One predicted-consumption interval, as produced by forecast module."""
     timestamp: datetime
     predicted_kwh: float
 
 
 class ForecastProvider(Protocol):
-    """
-    Adapter boundary onto Binita's forecasting module.
-
-    Implement this against her actual function/API once it's available,
-    e.g. wrapping `forecasting.predict(household_id, start, end)`.
-    """
+    """Adapter boundary onto forecasting module."""
 
     def get_forecast(
         self, household_id: int, start: datetime, end: datetime
@@ -52,7 +47,7 @@ class ForecastProvider(Protocol):
 
 @dataclass(frozen=True)
 class PredictedCost:
-    """Result of US-22: forecasted cost for a future window."""
+    """Forecasted cost for a future window."""
     household_id: int
     period_start: datetime
     period_end: datetime
@@ -170,10 +165,6 @@ def predict_future_cost(
     )
 
 
-# ---------------------------------------------------------------------------
-# Example in-memory ForecastProvider, useful for local testing without
-# Binita's service wired up yet.
-# ---------------------------------------------------------------------------
 class StaticForecastProvider:
     """Wraps a pre-built list of readings — for tests/demos only."""
 

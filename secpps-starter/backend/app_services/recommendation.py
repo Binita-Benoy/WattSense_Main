@@ -271,7 +271,7 @@ def generate_recommendations(
     comparison_label: str = "your last billing cycle",
 ) -> List[Recommendation]:
     """
-    Run all rules against the household's predicted cost (US-22 output) and
+    Run all rules against the household's predicted cost and
     tariff, returning every recommendation that fired, highest priority first.
 
     `prior_cycle_cost` is optional: the actual cost of a comparable earlier

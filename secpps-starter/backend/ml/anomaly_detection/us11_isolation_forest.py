@@ -1,4 +1,4 @@
-"""US-11: Isolation Forest anomaly detector with leakage-safe preprocessing."""
+"""Isolation Forest anomaly detector with leakage-safe preprocessing."""
 from __future__ import annotations
 
 import logging
@@ -217,13 +217,7 @@ def predict_if_on_split(
 
 
 def run_if_pipeline(splits: dict, threshold: float | None = None) -> dict:
-    """
-    Standalone US-11 pipeline.
-
-    In the full runner, US-13 calibrates the threshold on VALIDATION and then
-    final IF predictions are regenerated. If called alone, the train-percentile
-    fallback threshold is used.
-    """
+    
     trained = train_isolation_forest(splits["train"])
     if threshold is not None:
         set_if_threshold(trained, threshold, "provided")

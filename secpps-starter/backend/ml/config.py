@@ -47,10 +47,7 @@ ROLLING_WINDOWS = {"7d": 7 * 24, "30d": 30 * 24}
 PEAK_PERCENTILE = 80
 PEAK_WINDOW_DAYS = 30
 
-# Isolation Forest.
-# contamination='auto' prevents sklearn's fixed contamination boundary from
-# being confused with the final anomaly decision threshold. The final threshold
-# is calibrated on injected VALIDATION anomalies and then locked for TEST.
+# Isolation Forest
 IF_CONTAMINATION = "auto"
 IF_N_ESTIMATORS = 250
 IF_MAX_SAMPLES = 2048
@@ -77,28 +74,18 @@ AE_SCORE_LOW_PCT = 5.0
 AE_SCORE_HIGH_PCT = 99.5
 
 # Validation-calibrated IF + AE ensemble.
-# The final ensemble is selected using validation injections only.  F2 gives
-# recall twice the importance of precision, matching the project's current
-# priority of detecting more true anomalies.  The test set remains untouched
-# during weight/threshold selection.
 ENSEMBLE_BETA = 2.0
 ENSEMBLE_WEIGHT_STEP = 0.05
 ENSEMBLE_CALIBRATION_REPEATS = 3
 
-# Online/API inference. Raw incoming readings need historical context so the
-# same lag/rolling features used during training can be rebuilt. The backend
-# retrieves this context from PostgreSQL automatically.
+# Online/API inference. 
 INFERENCE_HISTORY_DAYS = 35  # legacy request-scoped DB-context mode
 
-# US-14 unseen-household history API. The frontend normally sends the full
-# hourly energy history; recent_readings is bounded so the JSON response stays
-# practical even when the supplied history spans years.
 API_RECENT_HOURS = 7 * 24
 API_MAX_ANOMALIES_PER_HOUSEHOLD = 500
 API_REQUIRE_HOURLY_HISTORY = True
 
-# Synthetic anomaly evaluation. These values intentionally remain close to the
-# previous US-13 setup so before/after metrics are comparable.
+# Synthetic anomaly evaluation.
 INJECTION_SPIKE_FRACTION = 0.010
 INJECTION_DROPOUT_FRACTION = 0.005
 INJECTION_SPIKE_MIN_MULT = 4.0
