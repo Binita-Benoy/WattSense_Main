@@ -6,7 +6,7 @@ import Warnings from "./Warnings";
 
 const label = (ts) => ts.replace("T", " ").slice(0, 16);
 
-// >>> ADDED: helpers for the "click an event, see it on the chart" view (timestamps stay plain text)
+
 const pad = (n) => String(n).padStart(2, "0");
 const toMs = (ts) => Date.UTC(+ts.slice(0, 4), +ts.slice(5, 7) - 1, +ts.slice(8, 10), +ts.slice(11, 13));
 const fmt = (ms) => {
@@ -15,7 +15,7 @@ const fmt = (ms) => {
 };
 const DAY = 86400000;
 const WINDOW_DAYS = 3; // days shown either side of the clicked event
-// <<< END ADDED
+
 
 function useSeconds(active) {
   const [seconds, setSeconds] = useState(0);
@@ -28,17 +28,14 @@ function useSeconds(active) {
   return seconds;
 }
 
-/**
- * "Check for anomalies": asks the backend to run the team's saved anomaly models over the user's own
- * readings, then shows how many unusual events were found, when, how unusual, and where they sit.
- */
+
 export default function AnomalyCheck({ token }) {
   const [status, setStatus] = useState("idle"); // idle | checking | done | error
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const seconds = useSeconds(status === "checking");
 
-  // >>> ADDED: the event the user clicked (null = show the default latest-7-days chart) and its readings
+  // the event the user clicked  and its readings
   const [focus, setFocus] = useState(null); // { start, end }
   const [focusRows, setFocusRows] = useState(null); // readings around it, from the readings endpoint
   const [focusState, setFocusState] = useState("idle"); // idle | loading | ok | error
@@ -71,7 +68,7 @@ export default function AnomalyCheck({ token }) {
     };
   }, [focus && focus.start, focus && focus.end, token]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // The readings around the event, with the unusual hours marked (matched by timestamp against the check's list).
+  // The readings around the event, with the unusual hours marked 
   const focusReadings = useMemo(() => {
     if (!focusRows || !result) return null;
     const flagged = new Map((result.anomalies || []).map((a) => [String(a.timestamp).slice(0, 19), a]));
@@ -94,7 +91,7 @@ export default function AnomalyCheck({ token }) {
     setFocus(ev);
     setTimeout(() => chartRef.current && chartRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" }), 50);
   };
-  // <<< END ADDED
+  
 
   const handleCheck = async (refresh = false) => {
     setStatus("checking");
@@ -172,8 +169,7 @@ export default function AnomalyCheck({ token }) {
 
               <Warnings items={result.warnings} />
 
-              {/* >>> CHANGED: the chart shows the days around the clicked event when there is one, else the original
-                  latest-days chart. Before: <AnomalyChart readings={result.recent_readings} /> */}
+              
               <div ref={chartRef}>
                 {focus && (
                   <p className="hint">
@@ -194,7 +190,7 @@ export default function AnomalyCheck({ token }) {
               {found > 0 && (
                 <AnomalyList anomalies={result.anomalies} total={found} onSelect={pickEvent} selected={focus} />
               )}
-              {/* <<< END CHANGED */}
+              
 
               <p className="hint anomaly-footnote">
                 Scores run from 0 (normal) to 1 (very unusual); they are not probabilities. A reading is flagged

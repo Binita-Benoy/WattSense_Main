@@ -10,15 +10,14 @@ function isoDateDaysAgo(days) {
   return d.toISOString().split("T")[0];
 }
 
-// Shifts a YYYY-MM-DD date by N days (UTC maths, so no off-by-one from timezones)
+
 function shiftDate(iso, days) {
   const d = new Date(`${iso}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().split("T")[0];
 }
 
-// minDate / maxDate = first / last day that has data. Presets count back from maxDate
-// (not from today), because a household's data doesn't necessarily end today.
+
 export default function DateRangeSelector({ startDate, endDate, onChange, minDate, maxDate }) {
   const latest = maxDate || isoDateDaysAgo(0);
 

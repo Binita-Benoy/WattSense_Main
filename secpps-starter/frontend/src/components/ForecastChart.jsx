@@ -14,11 +14,7 @@ function formatTick(ts) {
   return `${d.getMonth() + 1}/${d.getDate()}`;
 }
 
-/**
- * Historical consumption (solid line) + forecast (dashed line) on one chart.
- * Matches real EnergyReading field names (reading_timestamp, consumption_kwh)
- * and the forecast endpoint's field names (timestamp, predicted_kwh).
- */
+
 export default function ForecastChart({ readings, forecast }) {
   const merged = [
     ...readings.map((r) => ({

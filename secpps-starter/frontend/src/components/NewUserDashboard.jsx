@@ -2,10 +2,8 @@ import { useMemo, useState } from "react";
 import StatCard from "./StatCard";
 import ForecastInfo from "./ForecastInfo";
 import NewUserForecastChart from "./NewUserForecastChart";
-// >>> ADDED: live meter demo
 import { useLiveMeter, LiveControls, recalcHourly, toDaily } from "./LiveDemo";
-// <<< END ADDED
-import AnomalyCheck from "./AnomalyCheck"; // >>> CHANGED: the real anomaly check (was AnomalyPlaceholder)
+import AnomalyCheck from "./AnomalyCheck"; 
 import ReportButtons from "./ReportButtons";
 import Warnings from "./Warnings";
 
@@ -16,20 +14,18 @@ const kwh = (value, digits) => (value == null ? "n/a" : `${Number(value).toFixed
 
 /** Dashboard for a finished upload: history + forecast, horizon, model used, notes, reports. */
 export default function NewUserDashboard({ data, token }) {
-  // >>> CHANGED: `history` is renamed `baseHistory`; `history` below now = uploaded history + demo readings.
-  // (Before: const { history, result, info, warnings } = data;)
+ 
   const { history: baseHistory, result, info, warnings } = data;
-  // <<< END CHANGED
+ 
   const [horizon, setHorizon] = useState("24h");
 
-  // >>> ADDED: live meter demo. Extra readings (one per 30 s) are appended to the uploaded history, so the graph,
-  // the stat cards and the forecasts all update. The saved result from the server is left untouched.
+  
   const meter = useLiveMeter(useMemo(() => baseHistory.map((p) => ({ ts: p.timestamp, kwh: p.kwh })), [baseHistory]));
   const history = useMemo(
     () => (meter.live.length ? [...baseHistory, ...meter.live.map((p) => ({ timestamp: p.ts, kwh: p.kwh }))] : baseHistory),
     [baseHistory, meter.live]
   );
-  // <<< END ADDED
+ 
 
   const stats = useMemo(() => {
     let total = 0;
@@ -42,8 +38,7 @@ export default function NewUserDashboard({ data, token }) {
     return { days, avgDaily: total / days, peak };
   }, [history]);
 
-  // >>> CHANGED: once live readings exist, each horizon is recalculated from them (24h hourly, 7day / 1month daily).
-  // Before: const horizons = result.horizons || {};
+ 
   const savedHorizons = result.horizons || {};
   const horizons = useMemo(() => {
     if (!meter.live.length) return savedHorizons;
@@ -60,7 +55,7 @@ export default function NewUserDashboard({ data, token }) {
     redo("1month", () => toDaily(recalcHourly(meter.series, 30 * 24 + 24), 30));
     return out;
   }, [savedHorizons, meter.live.length, meter.series]);
-  // <<< END CHANGED
+ 
   const current = horizons[horizon];
   const placeName = (result.location && result.location.resolved_name) || data.location;
   const modelText = current && !current.error ? `${current.method} (fine-tuned on your data)` : null;
@@ -82,16 +77,14 @@ export default function NewUserDashboard({ data, token }) {
         <StatCard label="Next 30 days" value={kwh(horizons["1month"]?.total_kwh, 1)} />
       </div>
 
-      {/* >>> CHANGED: model={null} hides the orange "Model: ..." line. Before: model={modelText} */}
+      
       <ForecastInfo horizon={horizon} onHorizonChange={setHorizon} model={null} />
-      {/* <<< END CHANGED */}
-      {/* >>> ADDED: live meter controls (sit right above the graph) */}
+      
       <LiveControls meter={meter} />
-      {/* <<< END ADDED */}
+     
       <NewUserForecastChart history={history} horizon={horizon} horizonData={current} />
 
-      {/* >>> CHANGED: the "About this forecast" panel was removed from this dashboard.
-          Before: {result.limitations && result.limitations.length > 0 && ( <div className="chart-panel"> <h2>About this forecast</h2> ... </div> )} */}
+     
 
       <AnomalyCheck token={token} />
       <ReportButtons token={token} source="upload" />

@@ -1,10 +1,4 @@
-/**
- * Dashboard API layer. Talks to the token-scoped endpoints:
- *   /api/profile/*              new vs existing user choice
- *   /api/forecast/new-user      upload a CSV, build + fetch the forecast (new users)
- *   /api/my-household/*         dataset household data (existing users)
- * Kept separate from the original api.js, which is left untouched.
- */
+
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
@@ -70,10 +64,10 @@ export const dashboardApi = {
 
   // --- existing users: dataset household -----------------------------------
   getMySummary: (token) => authedJson("/api/my-household/summary", token),
- // >>> ADDED: start (or reuse) the real forecast for this household; read it with getNewUserForecast
+ 
   startMyHouseholdForecast: (token, force = false) =>
     authedJson(`/api/my-household/forecast/run${force ? "?force=true" : ""}`, token, { method: "POST" }),
-  // <<< END ADDED
+ 
   getMyReadings: (token, { start, end, limit = 2000 } = {}) => {
     const params = new URLSearchParams();
     if (start) params.append("start", start);
@@ -85,7 +79,7 @@ export const dashboardApi = {
   getMyAnomalies: (token, { refresh } = {}) =>
     authedJson(`/api/my-household/anomalies${refresh ? "?refresh=true" : ""}`, token),
 
-  // asOf: the forecast continues from the last reading at or before this time
+  
   getMyForecast: (token, horizon = "24h", asOf) =>
     authedJson(
       `/api/my-household/forecast?horizon=${horizon}${asOf ? `&as_of=${encodeURIComponent(asOf)}` : ""}`,
@@ -93,7 +87,7 @@ export const dashboardApi = {
     ),
 
   // --- reports (both kinds of user) ----------------------------------------
-  // source: "household" (dataset household, optional start/end) or "upload" (the saved upload)
+ 
   downloadReport: async (token, format, { source = "household", start, end, ratePerKwh } = {}) => {
     const base = source === "upload" ? "/api/forecast/new-user" : "/api/my-household";
     const params = new URLSearchParams();

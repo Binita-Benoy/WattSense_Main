@@ -7,12 +7,7 @@ import ForecastProgress from "./ForecastProgress";
 import NewUserDashboard from "./NewUserDashboard";
 import Warnings from "./Warnings";
 
-/**
- * Everything a "new user" sees, driven by the saved job's status:
- *   none / failed  -> upload form (failed also shows why)
- *   queued/running -> progress screen (polls until it finishes)
- *   done           -> dashboard
- */
+
 export default function NewUserFlow({ pollMs = 3000 }) {
   const { token } = useAuth();
   const [job, setJob] = useState(null);

@@ -1,10 +1,7 @@
 import { useState } from "react";
 import { dashboardApi } from "../api/dashboardApi";
 
-/**
- * CSV / PDF report. `source`: "household" (dataset household, uses `range`) or "upload" (saved upload).
- * Cost is only included if the user types their own rate: we don't have their tariff.
- */
+
 export default function ReportButtons({ token, source = "household", range }) {
   const [rate, setRate] = useState("");
   const [downloading, setDownloading] = useState(null);

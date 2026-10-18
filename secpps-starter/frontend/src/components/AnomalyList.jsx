@@ -12,8 +12,7 @@ const SHOW_FIRST = 15;
 
 const label = (ts) => ts.replace("T", " ").slice(0, 16);
 
-// >>> ADDED: group consecutive flagged hours into one event, and make rows clickable.
-// Timestamps are handled as text (never converted by the browser's timezone).
+
 const HOUR = 3600000;
 const toMs = (ts) => Date.UTC(+ts.slice(0, 4), +ts.slice(5, 7) - 1, +ts.slice(8, 10), +ts.slice(11, 13));
 
@@ -46,18 +45,15 @@ const range = (e) =>
     : e.start.slice(0, 10) === e.end.slice(0, 10)
       ? `${label(e.start)} to ${e.end.slice(11, 16)}`
       : `${label(e.start)} to ${label(e.end)}`;
-// <<< END ADDED
 
-/** Unusual readings, worst first (then newest first). `total` = how many the check found overall. */
-// >>> CHANGED: two new optional props. `onSelect({start, end})` is called when a row is clicked, `selected` is the
-// {start, end} currently shown on the chart. Both are optional, so other places that use this list still work.
-// Before: export default function AnomalyList({ anomalies, total, message }) {
+
+
 export default function AnomalyList({ anomalies, total, message, onSelect, selected }) {
-// <<< END CHANGED
+
   const [showAll, setShowAll] = useState(false);
-  // >>> ADDED: grouped = one row per event (default); false = the original one row per hour
+  
   const [grouped, setGrouped] = useState(true);
-  // <<< END ADDED
+ 
 
   if (message) {
     return (
@@ -71,7 +67,7 @@ export default function AnomalyList({ anomalies, total, message, onSelect, selec
   const sorted = [...anomalies].sort(
     (a, b) => (ORDER[a.severity] ?? 3) - (ORDER[b.severity] ?? 3) || b.timestamp.localeCompare(a.timestamp)
   );
-  // >>> ADDED
+  
   const events = groupEvents(anomalies);
   const items = grouped ? events : sorted;
   const visible = showAll ? items : items.slice(0, SHOW_FIRST);
@@ -90,7 +86,7 @@ export default function AnomalyList({ anomalies, total, message, onSelect, selec
           },
         }
       : {};
-  // <<< END ADDED
+ 
   const found = total ?? anomalies.length;
 
   return (
@@ -99,7 +95,7 @@ export default function AnomalyList({ anomalies, total, message, onSelect, selec
       {found > anomalies.length && (
         <p className="hint">Showing the most recent {anomalies.length} of {found}.</p>
       )}
-      {/* >>> ADDED: grouping switch + click hint */}
+      {/* >>> grouping switch + click hint */}
       <p className="hint">
         {grouped
           ? `Grouped into ${events.length} ${events.length === 1 ? "event" : "events"} (consecutive hours count as one). `
@@ -109,10 +105,9 @@ export default function AnomalyList({ anomalies, total, message, onSelect, selec
         </button>
         {onSelect && " Click a row to see it on the chart."}
       </p>
-      {/* <<< END ADDED */}
+      {/* <<< END */}
       <div className="anomaly-list">
-        {/* >>> CHANGED: rows come from `visible` (events or single hours) and are clickable. The hourly row is the original. */}
-        {visible.map((a) =>
+     
           grouped ? (
             <div key={a.start} className="anomaly-row" {...clickable(a.start, a.end)}>
               <span className="anomaly-severity" style={{ background: SEVERITY_COLORS[a.severity] || "#64748b" }}>
@@ -136,8 +131,8 @@ export default function AnomalyList({ anomalies, total, message, onSelect, selec
               <span className="anomaly-evidence">{EVIDENCE[a.model_evidence] || ""}</span>
             </div>
           )
-        )}
-        {/* <<< END CHANGED */}
+        
+       
       </div>
       {items.length > SHOW_FIRST && (
         <button className="link-button anomaly-more" onClick={() => setShowAll((v) => !v)}>

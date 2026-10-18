@@ -1,12 +1,9 @@
-// >>> ADDED: live-meter DEMO (whole file is new). Browser only: no backend, no database, no model.
-// It does NOT draw its own chart. The dashboards feed the extra readings into their EXISTING graphs, so the
-// usage line grows and the forecast line is recalculated on the same graphs every 30 s.
+
 import { useEffect, useMemo, useRef, useState } from "react";
 
-export const TICK_MS = 30000; // one new reading every 30 s (demo); each one stands for the next hour
+export const TICK_MS = 30000; // one new reading every 30 s 
 
-// Timestamps are handled as plain text ("2013-07-31T23:00:00"), never converted to UTC, so they line up
-// exactly with the timestamps the API already returns.
+
 const pad = (n) => String(n).padStart(2, "0");
 const parse = (ts) => Date.UTC(+ts.slice(0, 4), +ts.slice(5, 7) - 1, +ts.slice(8, 10), +ts.slice(11, 13));
 const fmt = (ms) => {
@@ -16,11 +13,7 @@ const fmt = (ms) => {
 const hourOf = (ts) => +ts.slice(11, 13);
 const avg = (a) => a.reduce((s, v) => s + v, 0) / a.length;
 
-/**
- * Hourly forecast for the next `n` hours: the typical value for each hour of day (last 7 days, live readings
- * included), scaled by how the latest 24 h compare with the 24 h before. A new reading therefore moves it.
- * series = [{ ts, kwh }]  ->  [{ ts, kwh }]
- */
+
 export function recalcHourly(series, n) {
   if (series.length < 48) return [];
   const last = series[series.length - 1];
@@ -69,10 +62,7 @@ export function liveHorizons(saved, series, hasLive) {
   return out;
 }
 
-/**
- * The live meter. `base` = [{ ts, kwh }] the dashboard already has.
- * Returns the extra readings plus the controls' state. Changing `base` (new date range) clears the demo.
- */
+
 export function useLiveMeter(base) {
   const [live, setLive] = useState([]);
   const [running, setRunning] = useState(false);
@@ -82,7 +72,7 @@ export function useLiveMeter(base) {
   const seriesRef = useRef(series);
   seriesRef.current = series;
 
-  // No spikes: this household's average for that hour over the last 7 days, +-5%, kept inside its own min..max.
+ 
   const addNow = () => {
     const s = seriesRef.current;
     if (s.length < 48) return;
@@ -109,8 +99,7 @@ export function useLiveMeter(base) {
 }
 
 /** Small control bar shown above the graph. */
-// >>> CHANGED: title is just "Live meter" and the line shows only the 30 s countdown and the number of live readings.
-// Before: "Live meter (demo)" and the extra text "forecast recalculated on each one (demo, not the trained model)".
+
 export function LiveControls({ meter }) {
   const { live, running, left, toggle, addNow, reset } = meter;
   return (
@@ -125,5 +114,3 @@ export function LiveControls({ meter }) {
     </div>
   );
 }
-// <<< END CHANGED
-// <<< END ADDED

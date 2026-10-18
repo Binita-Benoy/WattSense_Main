@@ -1,4 +1,4 @@
-/** Reserved space: anomaly detection for uploaded data isn't connected yet. */
+
 export default function AnomalyPlaceholder() {
   return (
     <div className="chart-panel anomaly-placeholder">

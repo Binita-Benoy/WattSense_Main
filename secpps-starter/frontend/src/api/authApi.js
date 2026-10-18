@@ -1,8 +1,3 @@
-/**
- * Auth API layer — talks to the real backend (US-1).
- * Base URL assumes the backend is reachable at localhost:8000 in dev.
- * Move this to an env variable (VITE_API_URL) if/when deploying.
- */
 
 const API_BASE = "http://localhost:8000";
 
@@ -40,7 +35,7 @@ export async function loginUser({ email, password }) {
     throw new Error(data?.detail || "Incorrect email or password.");
   }
 
-  return data; // { access_token, token_type }
+  return data; // 
 }
 
 export async function fetchCurrentUser(token) {
