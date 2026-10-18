@@ -78,6 +78,10 @@ app.include_router(new_user_forecast_router, prefix="/api", tags=["new-user fore
 # >>> ADDED: reports for a new user's uploaded data (US-19)
 from api.new_user_reports import router as new_user_reports_router
 app.include_router(new_user_reports_router, prefix="/api", tags=["new-user reports"])
+# >>> ADDED: tariff, current cost, predicted cost and recommendations (US-20 to US-24)
+from api.tariff import router as tariff_router
+app.include_router(tariff_router, prefix="/api", tags=["tariff & cost"])
+# <<< END ADDED
 # <<< END ADDED
 
 @app.get("/api/households")
