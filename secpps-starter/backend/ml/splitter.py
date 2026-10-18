@@ -1,26 +1,6 @@
 from logging_utils import log_print, safe_savefig
 import logging
 logger = logging.getLogger()
-# anomaly_detection/splitter.py
-# ─────────────────────────────────────────────────────────────────────────────
-# Chronological train / val / test split for time-series data
-#
-# WHY NOT RANDOM SPLIT?
-#   Energy consumption is a time series.
-#   A random split allows the model to "see" future data
-#   during training — future patterns leak into the past.
-#   This inflates accuracy and produces results that would
-#   never generalise to real deployment.
-#
-# WHY CHRONOLOGICAL?
-#   In production, the model always predicts the future
-#   from the past. The evaluation must mirror this:
-#   train on early data, evaluate on later data.
-#   This gives an honest estimate of real-world performance.
-#
-# SPLIT:  70% TRAIN  |  15% VALIDATION  |  15% TEST
-#         ← learns normal →  ← early stop →  ← final eval →
-# ─────────────────────────────────────────────────────────────────────────────
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt

@@ -52,13 +52,13 @@ def main():
         splits = split_all_households(features)
 
         # ------------------------------------------------------------------
-        # US-11: Isolation Forest is trained on TRAIN only.
+        # Isolation Forest is trained on TRAIN only.
         # ------------------------------------------------------------------
         log_print("\n>>> US-11: Train Isolation Forest")
         if_trained = train_isolation_forest(splits["train"])
 
         # ------------------------------------------------------------------
-        # US-12: LSTM AE is trained on TRAIN and early-stopped on chronological
+        # LSTM AE is trained on TRAIN and early-stopped on chronological
         # validation sequences.  Train-percentile threshold is fallback only.
         # ------------------------------------------------------------------
         log_print("\n>>> US-12: Train multivariate LSTM Autoencoder")
@@ -78,7 +78,7 @@ def main():
         }
 
         # ------------------------------------------------------------------
-        # US-13A: VALIDATION ONLY.
+        # VALIDATION ONLY.
         # Calibrate IF threshold, AE threshold, ensemble weights and ensemble
         # threshold.  Multiple deterministic validation injection repeats are
         # pooled for more stable calibration.  TEST is not used here.
@@ -128,7 +128,7 @@ def main():
         ensemble_ok = verify_ensemble(ensemble_results)
 
         # ------------------------------------------------------------------
-        # US-13B: independently injected held-out TEST evaluation.
+        # independently injected held-out TEST evaluation.
         # Reports IF, AE and ensemble using settings already locked on VAL.
         # ------------------------------------------------------------------
         log_print("\n>>> US-13B: Held-out injection evaluation")
@@ -140,7 +140,7 @@ def main():
         us13_ok = verify_us13(metrics, summary)
 
         # ------------------------------------------------------------------
-        # US-14: dashboard/API output uses the ENSEMBLE as the final decision,
+        # dashboard/API output uses the ENSEMBLE as the final decision,
         # while retaining individual IF/AE scores and flags for transparency.
         # ------------------------------------------------------------------
         log_print("\n>>> US-14: API Output")

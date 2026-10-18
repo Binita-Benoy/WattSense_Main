@@ -1,9 +1,3 @@
-"""
-ORM models matching infra/init-db/01-schema.sql (Alka's schema) exactly.
-If she changes the schema, update this file to match — it's the single
-shared definition everyone else (API, features, forecasting) should import
-instead of writing raw SQL against tables they're guessing at.
-"""
 from sqlalchemy import (
     Column, BigInteger, String, Boolean, Float, DateTime, ForeignKey
 )

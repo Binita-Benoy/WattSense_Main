@@ -159,13 +159,6 @@ def load_inference_context(
     start,
     end,
 ) -> pd.DataFrame:
-    """Load raw energy + weather context for online anomaly inference.
-
-    Unlike ``load_all_households`` this function is request-scoped: it loads
-    only the requested household IDs and time range. Household IDs are coerced
-    to integers before being inserted into the SQL IN clause; timestamps remain
-    bound SQL parameters.
-    """
     ids = sorted({int(h) for h in household_ids})
     if not ids:
         return pd.DataFrame()
@@ -226,9 +219,6 @@ def load_inference_context(
     ).rename(columns={DB_TIMESTAMP: COL_TIMESTAMP})
 
     if energy.empty:
-        # Incoming readings may be newer than the DB. Returning an empty/raw
-        # context is preferable to fabricating historical data; US-14 will
-        # report rows as unscored if enough context cannot be built.
         return pd.DataFrame()
 
     if COL_PUBLIC_HOLIDAY in energy.columns:
@@ -259,12 +249,7 @@ def load_inference_context(
 
 
 def list_inference_household_ids(source: str | None = None) -> list[int]:
-    """Return household IDs that currently have energy readings.
-
-    Used by US-14 when the backend requests inference for every household
-    currently present in ``energy_readings``.  ``source`` can optionally
-    restrict the list (for example ``source="synthetic"``).
-    """
+    
     engine = get_engine()
     if source is None:
         query = """
@@ -316,13 +301,7 @@ def get_inference_household_ranges(
 
 
 def load_inference_household_histories(household_ids) -> pd.DataFrame:
-    """Load complete energy + weather histories for arbitrary households.
-
-    This is the US-14 database entry point.  The households do not need to be
-    listed in ``config.HOUSEHOLD_IDS``.  Weather is assumed to have already
-    been ensured (US-14 calls the teammate's ``ensure_historical_weather``
-    first), then this function reads the complete available range.
-    """
+    """Load complete energy + weather histories for arbitrary households."""
     ids = sorted({int(h) for h in household_ids})
     if not ids:
         return pd.DataFrame()
@@ -365,13 +344,7 @@ def load_inference_auxiliary_context(
     start,
     end,
 ) -> pd.DataFrame:
-    """Load only weather + public-holiday context for arbitrary households.
-
-    This is the preferred US-14 helper when the frontend already supplies the
-    complete energy history.  Consumption is never read here, so request data
-    remains authoritative.  New synthetic household IDs do not need to appear
-    in ``config.HOUSEHOLD_IDS``.
-    """
+    """Load only weather + public-holiday context for arbitrary households."""
     ids = sorted({int(h) for h in household_ids})
     if not ids:
         return pd.DataFrame()

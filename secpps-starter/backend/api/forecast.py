@@ -55,7 +55,7 @@ def get_my_forecast(
     }
 
 
-# >>> ADDED: existing households now get the REAL forecast (Binita's bidirectional CNN-LSTM pipeline).
+# >>> ADDED: existing households now get the REAL forecast (based on bidirectional CNN-LSTM pipeline).
 # The household's recent hourly readings are copied from the database into the same background job that new users
 # use (api/new_user_forecast.py -> app_services/forecast_runner.py), and the page reads the result from
 # GET /api/forecast/new-user. The mock above is left in place (GET /my-household/forecast is not removed).

@@ -52,13 +52,11 @@ def health_db():
     return {"status": "ok"}
 
 
-# --- Team: mount your routers below as you build them ---------------------
 # from api.routes import router as api_router
 # app.include_router(api_router, prefix="/api")
 from api.auth import router as auth_router
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 
-# >>> ADDED: new routers for US-17 (forecast), US-18 (anomalies), US-19 (reports)
 from api.anomaly import router as anomaly_router
 app.include_router(anomaly_router, prefix="/api", tags=["anomaly"])
 
@@ -67,22 +65,19 @@ app.include_router(forecast_router, prefix="/api", tags=["forecast"])
 
 from api.reports import router as reports_router
 app.include_router(reports_router, prefix="/api", tags=["reports"])
-# <<< END ADDED
-# >>> ADDED: onboarding choice + new-user forecast (CSV upload)
+
 from api.profile import router as profile_router
 app.include_router(profile_router, prefix="/api", tags=["profile"])
 
 from api.new_user_forecast import router as new_user_forecast_router
 app.include_router(new_user_forecast_router, prefix="/api", tags=["new-user forecast"])
-# <<< END ADDED
-# >>> ADDED: reports for a new user's uploaded data (US-19)
+
 from api.new_user_reports import router as new_user_reports_router
 app.include_router(new_user_reports_router, prefix="/api", tags=["new-user reports"])
-# >>> ADDED: tariff, current cost, predicted cost and recommendations (US-20 to US-24)
+
 from api.tariff import router as tariff_router
 app.include_router(tariff_router, prefix="/api", tags=["tariff & cost"])
-# <<< END ADDED
-# <<< END ADDED
+
 
 @app.get("/api/households")
 def list_households(limit: int = 50, db: Session = Depends(get_db)):
@@ -164,16 +159,6 @@ def get_summary(household_id: int, db: Session = Depends(get_db)):
     }
 
 
-# >>> ADDED: token-scoped versions of the two endpoints above.
-# SECURITY NOTE: the two old endpoints above (/api/households/{household_id}/...)
-# accept household_id from the URL, so anyone with a valid token (or even
-# without one, since they're not auth-protected at all) can view ANY
-# household's data by changing the number in the URL. These new endpoints
-# below fix that for the main dashboard by taking household_id ONLY from
-# the logged-in user's own record (current_user.household_id) — never from
-# the client. The old endpoints are left in place, unchanged, in case
-# anything else (e.g. HouseholdSelector.jsx) still relies on them; just
-# don't use them for anything that should be private to one user.
 @app.get("/api/my-household/readings")
 def get_my_readings(
     start: Optional[datetime] = Query(None),
@@ -239,4 +224,3 @@ def get_my_summary(
         "first_reading": first_ts.isoformat() if first_ts else None,
         "last_reading": last_ts.isoformat() if last_ts else None,
     }
-# <<< END ADDED

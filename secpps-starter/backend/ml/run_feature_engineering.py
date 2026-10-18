@@ -1,4 +1,4 @@
-"""Run US-10 feature engineering with terminal + file logging."""
+"""Run feature engineering with terminal + file logging."""
 import logging
 from logging_utils import configure_logging, log_print
 from db_loader import load_all_households

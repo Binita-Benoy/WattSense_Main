@@ -48,8 +48,6 @@ from anomaly_detection.ensemble_detector import (
 from anomaly_detection.us11_isolation_forest import predict_if_on_split
 from anomaly_detection.us12_autoencoder import predict_dataframe
 
-# This is teammate-owned code.  US-14 only invokes it; it does not duplicate or
-# replace the Open-Meteo implementation.
 from forecasting.ensure_weather import ensure_historical_weather
 
 logger = logging.getLogger(__name__)
@@ -150,7 +148,7 @@ def resolve_api_households(payload: Any) -> tuple[list[int], bool, str | None]:
 
     if not isinstance(payload, Mapping):
         raise ValueError(
-            "US-14 expects household_id, household_ids, or all_households=true."
+            "API output component expects household_id, household_ids, or all_households=true."
         )
 
     all_households = bool(payload.get("all_households", False))
@@ -487,12 +485,11 @@ class AnomalyInferenceService:
         *,
         required: bool = False,
     ) -> tuple[dict[int, dict[str, Any]], list[str]]:
-        """Call teammate weather helper before model feature generation.
+        """Call weather helper before model feature generation.
 
         If ``required=False`` (default), an Open-Meteo/network failure is
         reported as a warning and inference continues.  Missing weather model
-        inputs are then handled by the training-only medians saved with US-11
-        and US-12.  Set ``required=True`` if the API should fail instead.
+        inputs are then handled by the training-only medians.  Set ``required=True`` if the API should fail instead.
         """
         engine = get_engine()
         status: dict[int, dict[str, Any]] = {}
@@ -566,14 +563,14 @@ class AnomalyInferenceService:
             for hh, group in features.groupby(COL_HOUSEHOLD)
         }
 
-        # US-11: saved/calibrated Isolation Forest.
+        # saved/calibrated Isolation Forest.
         if_results = predict_if_on_split(
             features,
             self.artifacts.if_trained,
             split_name="api_db_history",
         )
 
-        # US-12: saved LSTM Autoencoder.  Since the complete engineered history
+        # saved LSTM Autoencoder.  Since the complete engineered history
         # is supplied as F_target, the first sequence requires a short warm-up.
         empty_history = features.iloc[0:0].copy()
         ae_results = predict_dataframe(
@@ -584,7 +581,7 @@ class AnomalyInferenceService:
             split_name="api_db_history",
         )
 
-        # US-13: validation-locked IF+AE weights/decision threshold.
+        # validation-locked IF+AE weights/decision threshold.
         ensemble = predict_ensemble_from_results(
             if_results,
             ae_results,
