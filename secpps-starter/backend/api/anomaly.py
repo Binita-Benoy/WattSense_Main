@@ -1,17 +1,4 @@
-"""
-Anomaly routes (US-18), connected to the team's real anomaly detector (US-14).
 
-  GET /api/my-household/anomalies                 check the logged-in user's own data
-  GET /api/my-household/anomalies?refresh=true    same, ignoring the short-lived cache
-
-Whose data: ALWAYS the logged-in user's. The household is never taken from the request.
-  * an account registered as a NEW user  -> the CSV they uploaded (copied into the database under their own
-    household id, see app_services/upload_household.py)
-  * any other account (an existing user) -> the dataset household assigned to them
-
-The detector scores the household's whole stored history with the saved models. A check can take a while
-(the first one also loads the models), so the answer is cached in memory for a few minutes.
-"""
 import json
 import threading
 import time

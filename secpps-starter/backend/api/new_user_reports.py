@@ -1,11 +1,4 @@
-"""
-Reports for a new user's uploaded data (US-19), built from the saved upload + forecast.
 
-  GET /api/forecast/new-user/report.csv   hourly history + every forecast, one tidy table
-  GET /api/forecast/new-user/report.pdf   summary, forecast totals, 7-day table, limitations
-
-Cost: included only if the user supplies ?rate_per_kwh=0.30 (we don't know their tariff).
-"""
 import csv
 import io
 import json

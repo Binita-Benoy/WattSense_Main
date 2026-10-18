@@ -1,19 +1,4 @@
-"""
-Makes a new user's uploaded history visible to the anomaly service.
 
-The anomaly service reads only from the database (households + energy_readings). A new user's CSV is saved in
-forecast_jobs as JSON, so before checking it for anomalies it is copied into those tables once, under a household
-id that belongs to that user alone:
-
-    household_id = UPLOAD_HOUSEHOLD_BASE + user.id        (source = 'upload')
-
-The ids start far above the dataset's (about 8 to 11 million), so uploads can't collide with dataset
-households, and registration is told to ignore them (see api/auth.py). The team's synthetic demo household
-(99999999) sits above them too, but that would only collide at user id 9,999,999.
-
-sync_upload_household() is idempotent: if the stored rows already match the upload nothing is written; if the user
-uploaded a different file, the old rows and their weather are replaced.
-"""
 import threading
 from datetime import datetime
 

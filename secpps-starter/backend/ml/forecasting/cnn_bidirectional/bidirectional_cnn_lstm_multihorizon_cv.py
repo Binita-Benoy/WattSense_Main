@@ -1,28 +1,4 @@
-"""
-5-fold rolling-origin CV for the Bidirectional LSTM variant's 24h/7-day
-horizons - same CV pattern as both earlier variants' CV scripts
-(timedistributed_cnn_lstm_multihorizon_cv.py, direct_multistep_1month_cv.py,
-simple_cnn_lstm_cv.py): each fold retrains the full pooled base model using
-all other households' complete history plus the target household's data up
-to that fold's cutoff, then fine-tunes and forecasts forward into that
-fold's held-out window. Nothing from a fold's test window is ever seen
-during that fold's training.
 
-Memory fixes applied from the start, not discovered via a crash this time:
-the recursive TimeDistributed CV script died with a silent, no-traceback
-OOM on its first run (pooled training arrays still held in memory when
-fine-tuning's clone_model() duplicated the model right after). This script's
-LOOKBACK is only 24 (vs 168 for TimeDistributed), so sequences here are
-~7x smaller and the same crash is less likely - but the fix costs nothing
-to include and there's no reason to wait for a crash to add it a third time.
-
-Efficiency note: one 168h recursive run per fold serves both the 24h result
-(its first 24 hours) and the 7-day result, same trick as the other variants.
-
-Usage (GPU-first, CPU-fallback-only-if-it-fails, per your standing instruction):
-    docker compose exec -T backend python ml/forecasting/cnn_bidirectional/bidirectional_cnn_lstm_multihorizon_cv.py --household-id 8162493 --pool-limit 6
-    docker compose exec -T -e CUDA_VISIBLE_DEVICES="" backend python ml/forecasting/cnn_bidirectional/bidirectional_cnn_lstm_multihorizon_cv.py --household-id 8162493 --pool-limit 6
-"""
 import argparse
 import gc
 import os

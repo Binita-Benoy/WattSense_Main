@@ -1,26 +1,4 @@
-"""
-app_services/current_cost.py  (US-21)
 
-Cost of ACTUAL recorded consumption so far in the current billing cycle:
-
-    consumption  x  tariff rate  for the time period it fell in (peak / off-peak)
-
-Kept separate from billing.py, which costs FORECAST usage. Both use the same
-peak window (see tariffs.py).
-
-The functions take plain (timestamp, kWh) readings rather than querying a
-table, because a user's readings come from one of two places: the dataset
-household in `energy_readings`, or the CSV a new user uploaded. insights.py
-loads whichever applies.
-
-ASSUMPTION: billing cycle = calendar month (1st 00:00 -> now). If the real
-cycle differs, change _cycle_start() only.
-
-OLD DATA: the dataset ends in 2014 and an upload may end weeks ago, so "this
-calendar month" can be empty. When the newest reading is older than the real
-current month, the cycle is the month that reading falls in, and the result
-is flagged is_historical=True so the UI can say so.
-"""
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from typing import List, Optional, Tuple

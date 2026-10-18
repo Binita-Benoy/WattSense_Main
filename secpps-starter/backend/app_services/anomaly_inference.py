@@ -1,18 +1,4 @@
-"""
-Bridge between the web API and the team's anomaly service (backend/ml/anomaly_detection/us14_api.py).
 
-That service is database-driven: give it a household_id that has hourly readings in `energy_readings`
-and it loads the readings (fetching weather first if it is missing), rebuilds the training features,
-scores them with the SAVED Isolation Forest + LSTM autoencoder + calibrated ensemble, and returns JSON.
-Nothing is retrained here (see backend/ml/US14_DB_WEATHER_INTEGRATION_V6.md).
-
-This module only does the plumbing the service itself doesn't:
-  * puts backend/ml on the import path (the ml code imports its siblings by plain name),
-  * points the ml code at the same database as the web app (it reads DB_HOST/DB_USER/..., not DATABASE_URL),
-  * loads the models once, lazily, on the first request (not at server start-up),
-  * runs one check at a time (TensorFlow is memory-hungry),
-  * turns failures into messages a person can act on.
-"""
 import logging
 import os
 import sys

@@ -1,22 +1,4 @@
-"""
-Given ONLY consumption data for a household, automatically ensures matching
-historical weather exists -- fetching it from Open-Meteo if it doesn't.
-This is the piece that makes "just give me consumption" actually work,
-instead of requiring a pre-joined dataset.
 
-LIMITATION, stated plainly: real household location isn't in the schema
-(households has climate_zone, dwelling_type, etc. -- no lat/long). For
-SGSC households, we assume the Newcastle/NSW region, since that's where
-the real trial was concentrated -- an approximation, not exact per-house
-coordinates. For a fully general system, Alka would need to add real
-lat/long to the households table.
-
-Usage:
-    from ensure_weather import ensure_historical_weather
-    ensure_historical_weather(engine, household_id=10042974)
-    # weather_readings now has matching rows -- safe to call the
-    # existing generate_weather_forecast.py etc. right after this
-"""
 import os
 
 import pandas as pd

@@ -1,12 +1,4 @@
-"""
-Generates a synthetic household with realistic hourly consumption from
-2024-01-01 through today. This is the base data the LIVE DEMO TRACK
-(generate_live_24h_forecast.py, generate_live_weekly_forecast.py) trains
-on -- run this FIRST, then generate_synthetic_weather.py, before either
-live forecast script.
 
-source='synthetic' throughout, so it's never confused with real SGSC data.
-"""
 import argparse
 import os
 
